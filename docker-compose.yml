@@ -25,5 +25,35 @@ services:
       timeout: 3s
       retries: 10
 
+  # The API and worker. `docker compose --profile app up` after `docker build -f
+  # infra/Dockerfile -t lantern:latest .`; they read GitHub settings from .env.
+  api:
+    profiles: [app]
+    image: lantern:latest
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://lantern:lantern@postgres:5432/lantern
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    profiles: [app]
+    image: lantern:latest
+    command: ["python", "-m", "lantern_worker", "serve"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://lantern:lantern@postgres:5432/lantern
+      REDIS_URL: redis://redis:6379/0
+    read_only: true
+    tmpfs:
+      - /tmp:size=2g
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
 volumes:
   pgdata:

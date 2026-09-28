@@ -1,9 +1,20 @@
 [project]
 name = "lantern-api"
 version = "0.1.0"
-description = "Lantern HTTP API: jobs, findings, reports, GitHub App webhooks."
+description = "Lantern HTTP API: runs, findings, reports, GitHub App installation flow and webhooks."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "lantern-platform",
+    "lantern-report",
+    "lantern-analysis",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+[tool.uv.sources]
+lantern-platform = { workspace = true }
+lantern-report = { workspace = true }
+lantern-analysis = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

@@ -1,0 +1,26 @@
+{
+  "name": "Lantern DPIA",
+  "url": "https://lantern.example.com",
+  "description": "Repo-grounded data protection impact assessments: traces personal data through your code and reports it with evidence.",
+  "hook_attributes": {
+    "url": "https://api.lantern.example.com/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://lantern.example.com/github/app-created",
+  "callback_urls": [
+    "https://lantern.example.com/auth/github/callback"
+  ],
+  "request_oauth_on_install": true,
+  "setup_on_update": true,
+  "public": false,
+  "default_permissions": {
+    "contents": "read",
+    "metadata": "read",
+    "pull_requests": "write",
+    "checks": "write"
+  },
+  "default_events": [
+    "push",
+    "pull_request"
+  ]
+}

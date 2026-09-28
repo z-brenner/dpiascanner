@@ -22,12 +22,13 @@ Every claim in the report must be traceable to a graph node or edge with file pa
 | Path | Role |
 |---|---|
 | `apps/api` | FastAPI. Jobs, findings, reports, GitHub App webhooks. |
-| `apps/worker` | Python. Clone, parse, graph, classify, report. Runs in an ephemeral container with network limited to GitHub, the decision provider, and the package registry. |
+| `apps/worker` | Python. Clone, parse, graph, classify, verify, report. Each job runs in its own process (or container) with a timeout and a fresh directory that is deleted afterwards; outbound HTTP is limited to an allowlist (GitHub, the decision provider, the package registries). Repository code runs only in the dynamic-verification sandbox. |
 | `apps/web` | React + TypeScript + Vite. Repo picker, run status, report viewer, diff viewer. |
 | `packages/analysis` | tree-sitter parsing, Semgrep rule packs, graph builder (networkx), dependency registry integration. |
 | `packages/decisions` | `DecisionProvider` interface, Jev client, stub provider, question set definitions and versions. |
-| `packages/report` | DPIA assembler, GDPR Art. 35 and ICO template mapping, CCPA/CPRA mapping, JSON and Markdown renderers. |
+| `packages/report` | DPIA assembler, GDPR Art. 35 and ICO template mapping, CCPA/CPRA mapping, cited narrative, JSON, Markdown, HTML, and DOCX renderers. |
 | `packages/registry` | Curated third-party SDK registry with documented data behaviors and endpoints. |
+| `packages/platform` | Shared by the API and worker: settings, database models, run queue, GitHub App client, token encryption, egress allowlist, run persistence. |
 | `fixtures/` | Synthetic repositories with planted canary flows and a manifest of expected findings. |
 
 Storage: Postgres for jobs, graphs, decisions, and reports. Redis for the job queue.

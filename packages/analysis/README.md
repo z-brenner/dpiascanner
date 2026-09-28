@@ -66,15 +66,18 @@ graph = analyze_repo("path/to/repo", commit="<sha>")
   object is not the data that was sent.
 - The coverage metric is `paths_with_unresolved_step / tainted_paths`.
 
-## Known gaps (found on real repositories, not yet in fixtures)
+## Known gaps (found on real repositories)
 
 Per the project rule, each of these gets a fixture flow first, then an analyzer change.
+`fixtures/gaps-python` now holds the first two (flows G01 and G03, marked `known_gap`), and
+the benchmark reports them; they are tracked in z-brenner/dpiascanner#2.
 
 - SMTP and generic email libraries (`smtplib`, `emails`, `fastapi-mail`, `nodemailer`) are
-  not sinks yet.
+  not sinks yet (G01).
+- SQLModel reads (`session.exec(select(Model))`) are not ORM-read sources, and `table=True`
+  classes are recognized only through `__tablename__` or a known base (G03).
 - FastAPI dependency aliases (`CurrentUser = Annotated[User, Depends(...)]`) are not treated
-  as ORM-row sources.
-- SQLModel `table=True` classes are recognized only through `__tablename__` or a known base.
+  as ORM-row sources. A session injected the same way does work as an ORM sink (G02 passes).
 - Server-rendered templates, GraphQL resolvers, Django class-based views, and NestJS
   decorators have no source rules yet.
 - Analysis within a function is flow-insensitive, so a later `x = None` does not kill taint.

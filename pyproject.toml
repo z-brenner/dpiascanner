@@ -48,6 +48,8 @@ ignore = ["S101", "N818"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S", "N802"]
+# Builds RESULTS.md; its Markdown table rows are long string literals.
+"benchmarks/run_benchmark.py" = ["E501"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -71,8 +73,8 @@ markers = [
     "dynamic: runs Lantern's fixtures against fixtures/mock-server (needs uv and npm; ~1 min)",
     "docker: runs the Docker sandbox (needs a Docker daemon and LANTERN_DOCKER_TESTS=1)",
 ]
-testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server"]
-pythonpath = ["fixtures/mock-server"]
+testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server", "benchmarks"]
+pythonpath = ["fixtures/mock-server", "benchmarks"]
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI declares dependencies and parameters as call defaults.

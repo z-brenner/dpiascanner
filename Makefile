@@ -3,7 +3,7 @@ UV ?= uv
 PNPM ?= pnpm
 PY_SRC := packages apps/api apps/worker benchmarks
 
-.PHONY: help install lint lint-py lint-web fmt test test-py test-dynamic test-docker test-web run services api worker web clean
+.PHONY: help install lint lint-py lint-web fmt test test-py test-dynamic test-docker test-web benchmark benchmark-gate run services api worker web clean
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -36,6 +36,12 @@ test-dynamic: ## Run the fixtures under dynamic verification against the mock se
 
 test-docker: ## Run the Docker sandbox integration tests (builds images; needs Docker)
 	LANTERN_DOCKER_TESTS=1 $(UV) run pytest -m docker
+
+benchmark: ## Run the benchmark and regenerate benchmarks/RESULTS.md
+	$(UV) run python benchmarks/run_benchmark.py --write-results
+
+benchmark-gate: ## Fail unless canary recall is 100 percent and clean-python has no false positives
+	$(UV) run python benchmarks/run_benchmark.py --check --providers stub --no-save
 
 test-web:
 	$(PNPM) -r run test

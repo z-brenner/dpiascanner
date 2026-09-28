@@ -1,0 +1,7 @@
+{
+  "kind": "pipeline",
+  "provider": "jev",
+  "reason": "TYPESAFE_API_KEY and TYPESAFE_BASE_URL not set",
+  "status": "skipped",
+  "system": "pipeline (Jev provider)"
+}

@@ -60,7 +60,7 @@ Dependency direction (no cycles): `registry` ← `analysis` ← `report`; `decis
 
 ## 7. Working in this repo
 
-- `make install` syncs the uv workspace and the pnpm workspace. `make lint`, `make test`, `make run`. `make test-dynamic` runs the fixtures against the mock server; `make test-docker` runs the Docker sandbox (opt-in, builds images).
+- `make install` syncs the uv workspace and the pnpm workspace. `make lint`, `make test`, `make run`. `make test-dynamic` runs the fixtures against the mock server; `make test-docker` runs the Docker sandbox (opt-in, builds images). `make benchmark-gate` enforces the definition of done on the fixtures (CI runs it); `make benchmark` regenerates `benchmarks/RESULTS.md`.
 - Python packages live under `packages/<name>/src/lantern_<name>/` and `apps/<name>/src/lantern_<name>/`, with tests in `<package>/tests/`. pytest runs in importlib mode, so test module names may repeat across packages.
 - **Fixture first.** When a real repository exposes an analyzer gap, add the pattern to a fixture and its manifest first, watch the test fail, then fix the analyzer. Never tune a fixture to make the analyzer pass.
 - The `StubProvider` is an oracle tuned to the fixtures. Tests that use it prove plumbing, not classification quality. Classification quality is measured only by the calibration harness against a real provider.

@@ -24,6 +24,21 @@ jobs:
       - name: Test
         run: make test-py
 
+  benchmark-gate:
+    # Fails if pipeline recall on the canary fixtures drops below 100 percent or clean-python
+    # gets any false positive (Prompt 10). gaps-python is reported, not gated.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-packages --frozen
+      - name: Benchmark gate
+        run: make benchmark-gate
+
   dynamic:
     # Runs the canary fixtures against fixtures/mock-server and checks that every reachable
     # third-party sink is verified (Prompt 6). Fixture code only; see apps/worker dynamic/.

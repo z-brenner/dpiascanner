@@ -230,3 +230,16 @@ def test_dependency_fixture_manifest_locations() -> None:
         assert set(flow["expected_findings"]) <= FINDING_CATEGORIES
     mirror = FIXTURES / "dependency-mirror" / "pypi"
     assert (mirror / "acme-geo-0.3.1" / "acme_geo" / "client.py").is_file()
+
+
+def test_gaps_fixture_manifest_locations() -> None:
+    manifest = load_manifest("gaps-python")
+    assert [f["id"] for f in manifest["flows"]] == ["G01", "G02", "G03"]
+    for flow in manifest["flows"]:
+        for source in flow["sources"]:
+            assert_location("gaps-python", source)
+            assert source["expected_data_category"] in DATA_CATEGORIES
+        assert_location("gaps-python", flow["sink"])
+        assert flow["sink"]["expected_sink_class"] in SINK_CLASSES
+        assert set(flow["expected_findings"]) <= FINDING_CATEGORIES
+    assert {f["id"] for f in manifest["flows"] if f.get("known_gap")} == {"G01", "G03"}

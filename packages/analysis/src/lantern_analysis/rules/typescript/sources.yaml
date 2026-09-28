@@ -1,0 +1,95 @@
+rules:
+  - id: ts.source.http.express-container
+    languages: [typescript]
+    severity: INFO
+    message: "mode=container kind=http_body"
+    metadata: {kind: source, family: http}
+    patterns:
+      - pattern-either:
+          - pattern: $REQ.body
+          - pattern: $REQ.query
+          - pattern: $REQ.params
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request|ctx\.request)$
+
+  - id: ts.source.http.next-container
+    languages: [typescript]
+    severity: INFO
+    message: "mode=container kind=http_body"
+    metadata: {kind: source, family: http}
+    patterns:
+      - pattern-either:
+          - pattern: await $REQ.json()
+          - pattern: await $REQ.formData()
+          - pattern: $REQ.nextUrl.searchParams
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request)$
+
+  - id: ts.source.http.header-or-cookie
+    languages: [typescript]
+    severity: INFO
+    message: "mode=field kind=header_cookie key=$KEY"
+    metadata: {kind: source, family: http}
+    patterns:
+      - pattern-either:
+          - pattern: $REQ.headers[$KEY]
+          - pattern: $REQ.headers.get($KEY)
+          - pattern: $REQ.get($KEY)
+          - pattern: $REQ.header($KEY)
+          - pattern: $REQ.cookies[$KEY]
+          - pattern: $REQ.cookies.get($KEY)
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request|ctx\.request)$
+
+  - id: ts.source.http.client-ip
+    languages: [typescript]
+    severity: INFO
+    message: "mode=field kind=header_cookie key=client_ip"
+    metadata: {kind: source, family: http}
+    patterns:
+      - pattern-either:
+          - pattern: $REQ.ip
+          - pattern: $REQ.ips
+          - pattern: $REQ.socket.remoteAddress
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request)$
+
+  - id: ts.source.upload.files
+    languages: [typescript]
+    severity: INFO
+    message: "mode=container kind=upload"
+    metadata: {kind: source, family: upload}
+    patterns:
+      - pattern-either:
+          - pattern: $REQ.file
+          - pattern: $REQ.files
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: ^(req|request)$
+
+  - id: ts.source.env.read
+    languages: [typescript]
+    severity: INFO
+    message: "mode=field kind=env key=$KEY"
+    metadata: {kind: source, family: env}
+    pattern-either:
+      - pattern: process.env.$KEY
+      - pattern: process.env[$KEY]
+
+  - id: ts.source.orm.prisma-read
+    languages: [typescript]
+    severity: INFO
+    message: "mode=orm_read kind=orm_read model=$MODEL"
+    metadata: {kind: source, family: orm}
+    patterns:
+      - pattern: $DB.$MODEL.$OP(...)
+      - metavariable-regex:
+          metavariable: $DB
+          regex: (?i)^(.*\.)?(prisma|db|tx|client|database|_db|_prisma)$
+      - metavariable-regex:
+          metavariable: $OP
+          regex: ^(findUnique|findUniqueOrThrow|findFirst|findFirstOrThrow|findMany|groupBy)$

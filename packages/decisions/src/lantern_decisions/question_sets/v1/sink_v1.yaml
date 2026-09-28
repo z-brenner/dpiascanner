@@ -1,0 +1,73 @@
+id: sink
+version: v1
+applies_to: sink
+description: >-
+  Questions about a sink node: a call that sends data out of the process or persists it.
+questions:
+  - id: destination_class
+    kind: choice
+    description: Where does this sink send or store the data?
+    options:
+      - id: first_party_store
+        description: The organization's own database, cache, or file store.
+      - id: log
+        description: >-
+          Application logs, error reporting, or observability pipelines, whether self-hosted
+          or a third-party service such as Sentry, Datadog, or New Relic.
+      - id: queue
+        description: Message queues, event buses, pub/sub topics, and task queues.
+      - id: analytics
+        description: >-
+          Product analytics or telemetry services such as Mixpanel, Segment, Amplitude,
+          PostHog, or Google Analytics.
+      - id: ad_tech
+        description: >-
+          Advertising pixels, conversion APIs, and audience or retargeting platforms such as
+          the Meta Pixel or Google Ads.
+      - id: cloud_provider
+        description: >-
+          Infrastructure services acting on the organization's behalf, such as object
+          storage, managed databases, or compute at AWS, Google Cloud, or Azure.
+      - id: payment_processor
+        description: Payment and billing providers such as Stripe, Adyen, or Braintree.
+      - id: communications
+        description: >-
+          Email, SMS, push, chat, CRM, or customer messaging services such as Twilio,
+          SendGrid, Mailchimp, Intercom, HubSpot, or Braze.
+      - id: ai_model_provider
+        description: Hosted AI or LLM APIs such as OpenAI, Anthropic, or Google Gemini.
+      - id: unknown_third_party
+        description: Any other external party, including partner APIs and unregistered SDKs.
+      - id: cross_border
+        description: >-
+          The destination is known to be in a different jurisdiction from the data subjects
+          and no more specific class applies.
+  - id: sale_or_share_cpra
+    kind: yes_no
+    description: >-
+      Could this disclosure be a sale (Cal. Civ. Code 1798.140(ad)) or sharing for
+      cross-context behavioral advertising (1798.140(ah)) under the CPRA? Answer yes when
+      personal information goes to a party that is not acting as a service provider or
+      contractor under a written contract, or when it is used for cross-context behavioral
+      advertising. Answer no for disclosures to a service provider for a business purpose.
+    options:
+      - id: "yes"
+        description: The disclosure could be a sale or share.
+      - id: "no"
+        description: The disclosure is to a service provider or contractor, or stays first-party.
+  - id: purpose
+    kind: choice
+    description: What is the most likely purpose of this processing, based on the code?
+    options:
+      - id: service_delivery
+        description: Needed to provide the service the person asked for, including billing.
+      - id: security
+        description: Fraud prevention, abuse detection, debugging, or incident response.
+      - id: analytics
+        description: Measuring or improving the product.
+      - id: marketing
+        description: Advertising, promotion, or outreach not requested by the person.
+      - id: legal_obligation
+        description: Required by law, such as tax records or identity verification mandates.
+      - id: unknown
+        description: The code does not show the purpose.

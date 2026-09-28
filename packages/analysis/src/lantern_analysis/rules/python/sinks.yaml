@@ -1,0 +1,152 @@
+# Python sinks: calls that send data out of the process or persist it.
+rules:
+  - id: python.sink.log.stdlib
+    languages: [python]
+    severity: INFO
+    message: "sink=log"
+    metadata: {kind: sink, family: log}
+    patterns:
+      - pattern: $L.$LEVEL(...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^(self\.)?_?(log|logger|logging|log_|audit_log|audit_logger|structlog|loguru\.logger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(debug|info|warning|warn|error|exception|critical|fatal|log|msg)$
+
+  - id: python.sink.log.print
+    languages: [python]
+    severity: INFO
+    message: "sink=log"
+    metadata: {kind: sink, family: log}
+    pattern: print(...)
+
+  - id: python.sink.http.requests
+    languages: [python]
+    severity: INFO
+    message: "sink=http"
+    metadata: {kind: sink, family: http}
+    patterns:
+      - pattern-either:
+          - pattern: requests.$M(...)
+          - pattern: httpx.$M(...)
+          - pattern: urllib3.request(...)
+          - pattern: urllib.request.urlopen(...)
+          - pattern: aiohttp.request(...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(get|post|put|patch|delete|head|options|request|stream)$
+
+  - id: python.sink.http.client-instance
+    languages: [python]
+    severity: INFO
+    message: "sink=http"
+    metadata: {kind: sink, family: http}
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $C = httpx.Client(...)
+              ...
+          - pattern-inside: |
+              $C = httpx.AsyncClient(...)
+              ...
+          - pattern-inside: |
+              $C = requests.Session(...)
+              ...
+          - pattern-inside: |
+              with httpx.Client(...) as $C:
+                ...
+          - pattern-inside: |
+              async with httpx.AsyncClient(...) as $C:
+                ...
+          - pattern-inside: |
+              async with aiohttp.ClientSession(...) as $C:
+                ...
+      - pattern: $C.$M(...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(get|post|put|patch|delete|head|options|request|stream|send)$
+
+  - id: python.sink.orm.sqlalchemy-write
+    languages: [python]
+    severity: INFO
+    message: "sink=orm"
+    metadata: {kind: sink, family: orm, persists: true}
+    patterns:
+      - pattern-either:
+          - pattern: $S.add($X)
+          - pattern: $S.add_all($X)
+          - pattern: $S.merge($X, ...)
+          - pattern: $S.bulk_save_objects($X, ...)
+          - pattern: $S.bulk_insert_mappings($M, $X, ...)
+          - pattern: $S.execute(insert($M).values(...), ...)
+          - pattern: $S.execute(update($M).values(...), ...)
+          - pattern: $S.execute(insert($M), $X, ...)
+      - metavariable-regex:
+          metavariable: $S
+          regex: (?i)^(.*\.)?(_?session|_?db|sess|db_session|s|conn|connection)$
+
+  - id: python.sink.orm.django-write
+    languages: [python]
+    severity: INFO
+    message: "sink=orm"
+    metadata: {kind: sink, family: orm, persists: true}
+    patterns:
+      - pattern-either:
+          - pattern: $MODEL.objects.create(...)
+          - pattern: $MODEL.objects.update_or_create(...)
+          - pattern: $MODEL.objects.get_or_create(...)
+          - pattern: $MODEL.objects.bulk_create(...)
+          - pattern: $MODEL.objects.filter(...).update(...)
+      - metavariable-regex:
+          metavariable: $MODEL
+          regex: ^[A-Z][A-Za-z0-9_]*$
+
+  - id: python.sink.file.write
+    languages: [python]
+    severity: INFO
+    message: "sink=file"
+    metadata: {kind: sink, family: file, persists: true}
+    pattern-either:
+      - pattern: $P.write_text(...)
+      - pattern: $P.write_bytes(...)
+      - pattern: json.dump($X, $F, ...)
+      - pattern: pickle.dump($X, $F, ...)
+      - pattern: csv.writer(...).writerow(...)
+      - pattern: |
+          with open($PATH, $MODE, ...) as $F:
+            ...
+            $F.write(...)
+      - pattern: open($PATH, $MODE, ...).write(...)
+
+  - id: python.sink.cache.redis
+    languages: [python]
+    severity: INFO
+    message: "sink=cache"
+    metadata: {kind: sink, family: cache, persists: true}
+    patterns:
+      - pattern: $R.$M(...)
+      - metavariable-regex:
+          metavariable: $R
+          regex: (?i)^(.*\.)?(redis|_?redis_client|_?cache|r|rds|memcache|memcached)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(set|setex|psetex|hset|hmset|mset|lpush|rpush|sadd|zadd|xadd|set_many|add)$
+
+  - id: python.sink.queue.publish
+    languages: [python]
+    severity: INFO
+    message: "sink=queue"
+    metadata: {kind: sink, family: queue}
+    pattern-either:
+      - pattern: $T.delay(...)
+      - pattern: $T.apply_async(...)
+      - pattern: $CH.basic_publish(...)
+      - patterns:
+          - pattern: $P.$M(...)
+          - metavariable-regex:
+              metavariable: $P
+              regex: (?i)^(.*\.)?(_?producer|_?publisher|kafka_producer|_?pubsub|_?bus|event_bus)$
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(send|produce|publish|send_and_wait)$

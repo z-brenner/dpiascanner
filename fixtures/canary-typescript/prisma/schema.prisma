@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               Int            @id @default(autoincrement())
+  email            String         @unique
+  fullName         String
+  plan             String         @default("free")
+  stripeCustomerId String?
+  createdAt        DateTime       @default(now())
+  healthRecords    HealthRecord[]
+}
+
+model HealthRecord {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  condition   String
+  submittedAt DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model SignupMetric {
+  id        Int      @id @default(autoincrement())
+  age       Int
+  cohort    String
+  expiresAt DateTime
+}
+
+model ReferralContact {
+  id         Int    @id @default(autoincrement())
+  email      String
+  referredBy Int
+  source     String
+}

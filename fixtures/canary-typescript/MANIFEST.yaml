@@ -1,0 +1,196 @@
+# Planted personal-data flows in this fixture. Consumed by Lantern's tests and benchmark.
+# Never shown to the analyzer or to the LLM baseline.
+#
+# Location conventions (see fixtures/README.md):
+#   source.line  TypeScript: the first expression that reads the field from the request
+#                (req.body destructuring or req.body.<field>), or the ORM read call.
+#   sink.line    the line of the call that hands data to the destination.
+#   snippet      text that must appear on that line; the manifest test enforces it.
+schema_version: 1
+fixture: canary-typescript
+language: typescript
+flows:
+  - id: C01
+    description: User email from a request body written to the User table through Prisma.
+    sources:
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: email, expected_data_category: contact}
+    sink: {file: src/routes/users.ts, line: 26, snippet: "prisma.user.create(", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [indefinite_retention]
+    forbidden_findings: [personal_data_to_third_party, unresolved_flow]
+
+  - id: C02
+    description: User email passed to a Mixpanel track call.
+    sources:
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: email, expected_data_category: contact}
+    sink: {file: src/analytics.ts, line: 13, snippet: "mixpanel.track(", expected_sink_class: analytics, registry_package: mixpanel}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C03
+    description: >-
+      SSN passed through encryptField, which only base64-encodes it, then logged with pino.
+      Reversible encoding must never be classified as encrypted or hashed.
+    sources:
+      - {file: src/routes/identity.ts, line: 8, snippet: "req.body.ssn", field: ssn, expected_data_category: government_id}
+    sink: {file: src/routes/identity.ts, line: 9, snippet: "logger.info(", expected_sink_class: log}
+    transform: {file: src/security.ts, line: 3, snippet: "toString(\"base64\")"}
+    expected_transformation: reversible_encoding
+    must_not_classify_as: [encrypted, hashed, tokenized]
+    reachable: true
+    resolution: resolved
+    expected_findings: [reversible_obfuscation, logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C04
+    description: Precise latitude and longitude from a mobile client sent to a third-party weather API.
+    sources:
+      - {file: src/routes/location.ts, line: 7, snippet: "= req.body", field: latitude, expected_data_category: precise_location}
+      - {file: src/routes/location.ts, line: 7, snippet: "= req.body", field: longitude, expected_data_category: precise_location}
+    sink: {file: src/weather.ts, line: 9, snippet: "axios.get(", expected_sink_class: unknown_third_party}
+    expected_transformation: passthrough
+    precise_geolocation: true
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C05
+    description: Health condition from a urlencoded form saved to a table with no retention policy.
+    sources:
+      - {file: src/routes/health.ts, line: 8, snippet: "req.body.condition", field: condition, expected_data_category: health}
+    sink: {file: src/routes/health.ts, line: 7, snippet: "prisma.healthRecord.create(", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    special_category: true
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [special_category_processing, indefinite_retention]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C06
+    description: >-
+      Date of birth used to compute age; only the age is stored, with expiresAt set and a
+      scheduled purge job. The date of birth itself is dropped.
+    sources:
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: dateOfBirth, expected_data_category: demographic}
+    sink: {file: src/routes/users.ts, line: 29, snippet: "prisma.signupMetric.create(", expected_sink_class: first_party_store}
+    transform: {file: src/routes/users.ts, line: 17, snippet: "today.getFullYear() - dob.getFullYear()"}
+    expected_transformation: aggregated
+    dropped_fields: [dateOfBirth]
+    reachable: true
+    resolution: resolved
+    retention:
+      has_expiry: true
+      evidence:
+        - {file: src/routes/users.ts, snippet: "SIGNUP_METRIC_TTL_MS = 90"}
+        - {file: src/jobs/purgeSignupMetrics.ts, snippet: "prisma.signupMetric.deleteMany("}
+        - {file: deploy/crontab, snippet: "purgeSignupMetrics.ts"}
+    expected_findings: [personal_data_processing]
+    forbidden_findings: [indefinite_retention, unresolved_flow]
+
+  - id: C07
+    description: >-
+      Referee email crossing six files: the route, a service, two helper modules, the DI
+      container, and a constructor-injected repository class that writes it.
+    sources:
+      - {file: src/routes/referrals.ts, line: 8, snippet: "req.body.refereeEmail", field: refereeEmail, expected_data_category: contact}
+    sink: {file: src/repositories/contactRepository.ts, line: 8, snippet: "this.db.referralContact.create(", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    files_crossed:
+      - src/routes/referrals.ts
+      - src/services/referralService.ts
+      - src/helpers/normalize.ts
+      - src/helpers/envelope.ts
+      - src/container.ts
+      - src/repositories/contactRepository.ts
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [indefinite_retention]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C08
+    description: >-
+      Phone number placed in an object that is read with a computed key imported from another
+      module. The analyzer must report the flow as unresolved with evidence.
+    sources:
+      - {file: src/routes/partners.ts, line: 7, snippet: "req.body.phone", field: phone, expected_data_category: contact}
+    sink: {file: src/partners.ts, line: 7, snippet: "const response = await axios.post(", expected_sink_class: unknown_third_party}
+    opaque_access: {file: src/partners.ts, line: 6, snippet: "profile[PARTNER_CONTACT_FIELD]"}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: unresolved
+    expected_findings: [unresolved_flow]
+    forbidden_findings: [personal_data_to_third_party]
+
+  - id: C09
+    description: >-
+      @sentry/node is initialized with a beforeSend hook that deletes user.email, which
+      mitigates the setUser path. A separate error path puts the email in an error message
+      that the error middleware captures and sends unscrubbed.
+    sources:
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: email, expected_data_category: contact}
+    sink: {file: src/app.ts, line: 30, snippet: "Sentry.captureException(err)", expected_sink_class: log, registry_package: "@sentry/node"}
+    mitigation:
+      hook: beforeSend
+      hook_location: {file: src/observability.ts, line: 9, snippet: "beforeSend(event)"}
+      mitigated_sink: {file: src/observability.ts, line: 20, snippet: "Sentry.setUser("}
+    exception_raise: {file: src/routes/users.ts, line: 23, snippet: "throw new DuplicateAccountError("}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [mitigated_partially, logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C10
+    description: Stripe customer creation sending name, email, and a payment method id.
+    sources:
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: fullName, expected_data_category: identifier}
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: email, expected_data_category: contact}
+      - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: paymentMethodId, expected_data_category: financial}
+    sink: {file: src/billing.ts, line: 21, snippet: "stripe.customers.create(", expected_sink_class: payment_processor, registry_package: stripe}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_processing]
+    forbidden_findings: [unresolved_flow, personal_data_to_third_party]
+
+  - id: C11
+    description: >-
+      An exported function that would send every user's email to a legacy CRM but is never
+      imported. The package is an application with no library entry point, so exports are
+      not entry points.
+    sources:
+      - {file: src/legacy.ts, line: 9, snippet: "prisma.user.findMany()", field: email, expected_data_category: contact}
+    sink: {file: src/legacy.ts, line: 10, snippet: "axios.post(LEGACY_CRM_URL", expected_sink_class: unknown_third_party}
+    expected_transformation: passthrough
+    reachable: false
+    resolution: resolved
+    expected_findings: [unreachable_flow]
+    forbidden_findings: [personal_data_to_third_party]
+
+  - id: C12
+    description: >-
+      User data exported to S3. The bucket region is eu-west-1 in config/settings.json and
+      us-east-1 in .env.example, so the storage jurisdiction is ambiguous.
+    sources:
+      - {file: src/routes/users.ts, line: 43, snippet: "prisma.user.findUnique(", field: email, expected_data_category: contact}
+    sink: {file: src/storage.ts, line: 17, snippet: "s3.send(new PutObjectCommand(", expected_sink_class: cloud_provider, registry_package: "@aws-sdk/client-s3"}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    jurisdiction_review: true
+    conflicting_config:
+      key: s3_region
+      values:
+        - {file: config/settings.json, line: 4, snippet: "\"region\": \"eu-west-1\"", value: eu-west-1}
+        - {file: .env.example, line: 6, snippet: "S3_REGION=us-east-1", value: us-east-1}
+    expected_findings: [cross_border_ambiguity]
+    forbidden_findings: [unresolved_flow]

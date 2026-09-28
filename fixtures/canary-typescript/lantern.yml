@@ -1,0 +1,23 @@
+# Lantern dynamic verification settings for this repository.
+dynamic:
+  run: npx tsx scripts/exercise.ts
+  env:
+    LANTERN_MEMORY_DB: "1"
+    STRIPE_API_KEY: sk_test_lantern_mock
+    AWS_ACCESS_KEY_ID: lantern-mock
+    AWS_SECRET_ACCESS_KEY: lantern-mock
+  # Environment variables that hold third-party endpoints, with their production values.
+  # rewrite: port means the SDK only accepts host/port/protocol (no base path), so the
+  # mock server gives the endpoint its own port instead of a /_host/ path prefix.
+  endpoints:
+    MIXPANEL_API_URL: https://api.mixpanel.com
+    SENTRY_DSN: https://publickey@o0.ingest.sentry.io/0
+    STRIPE_API_BASE: {url: "https://api.stripe.com", rewrite: port}
+    WEATHER_API_URL: https://api.open-weather-data.example/v1/forecast
+    PARTNER_API_URL: https://hooks.partner-crm.example/v2/contacts
+    S3_ENDPOINT_URL: https://s3.eu-west-1.amazonaws.com
+
+# Static analysis scope. The exercise script is a test harness that drives the app with
+# synthetic values; it is not application code.
+analysis:
+  exclude: ["scripts/exercise.*"]

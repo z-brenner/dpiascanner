@@ -1,0 +1,301 @@
+{
+  "aggregate": {
+    "clean_false_positives": 0,
+    "finding_categories": 1.0,
+    "precision_planted": 1.0,
+    "recall_known_gaps": 0.3333333333333333,
+    "recall_planted": 1.0,
+    "special_handled": 1.0,
+    "wall_clock_s": 18.67
+  },
+  "fixtures": [
+    {
+      "duration_s": 2.43,
+      "finding_categories_correct": 12,
+      "fixture": "canary-python",
+      "flows": [
+        {
+          "found": true,
+          "handled": null,
+          "id": "C01",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C02",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C03",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C04",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C05",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C06",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C07",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": true,
+          "id": "C08",
+          "known_gap": null,
+          "matched": 1,
+          "special": "unresolved"
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C09",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C10",
+          "known_gap": null,
+          "matched": 3,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": true,
+          "id": "C11",
+          "known_gap": null,
+          "matched": 2,
+          "special": "unreachable"
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C12",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        }
+      ],
+      "group": "planted",
+      "precision": 1.0,
+      "predictions": 19,
+      "recall": 1.0,
+      "true_predictions": 19
+    },
+    {
+      "duration_s": 6.02,
+      "finding_categories_correct": 12,
+      "fixture": "canary-typescript",
+      "flows": [
+        {
+          "found": true,
+          "handled": null,
+          "id": "C01",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C02",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C03",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C04",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C05",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C06",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C07",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": true,
+          "id": "C08",
+          "known_gap": null,
+          "matched": 1,
+          "special": "unresolved"
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C09",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C10",
+          "known_gap": null,
+          "matched": 3,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": true,
+          "id": "C11",
+          "known_gap": null,
+          "matched": 2,
+          "special": "unreachable"
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "C12",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        }
+      ],
+      "group": "planted",
+      "precision": 1.0,
+      "predictions": 19,
+      "recall": 1.0,
+      "true_predictions": 19
+    },
+    {
+      "duration_s": 6.04,
+      "finding_categories_correct": 1,
+      "fixture": "unregistered-sdk-python",
+      "flows": [
+        {
+          "found": true,
+          "handled": null,
+          "id": "D01",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        }
+      ],
+      "group": "planted",
+      "precision": 1.0,
+      "predictions": 2,
+      "recall": 1.0,
+      "true_predictions": 2
+    },
+    {
+      "duration_s": 2.11,
+      "finding_categories_correct": null,
+      "fixture": "clean-python",
+      "flows": [],
+      "group": "clean",
+      "precision": null,
+      "predictions": 0,
+      "recall": null,
+      "true_predictions": 0
+    },
+    {
+      "duration_s": 2.08,
+      "finding_categories_correct": null,
+      "fixture": "gaps-python",
+      "flows": [
+        {
+          "found": false,
+          "handled": null,
+          "id": "G01",
+          "known_gap": "No sink rule for smtplib (SMTP.send_message, SMTP.sendmail).",
+          "matched": 0,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "G02",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
+        },
+        {
+          "found": false,
+          "handled": null,
+          "id": "G03",
+          "known_gap": "SQLModel reads (session.exec(select(Model))) are not ORM-read sources; SQLModel table=True classes are not recognized as ORM models.",
+          "matched": 0,
+          "special": null
+        }
+      ],
+      "group": "known-gaps",
+      "precision": 1.0,
+      "predictions": 2,
+      "recall": 0.3333333333333333,
+      "true_predictions": 2
+    }
+  ],
+  "gate_failures": [],
+  "kind": "pipeline",
+  "provider": "stub",
+  "status": "completed",
+  "system": "pipeline (stub provider)"
+}

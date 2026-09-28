@@ -1,0 +1,6 @@
+{
+  "system": "LLM baseline (claude-opus-5-5)",
+  "kind": "llm",
+  "status": "skipped",
+  "reason": "ANTHROPIC_API_KEY not set"
+}

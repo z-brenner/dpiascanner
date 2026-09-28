@@ -1,0 +1,315 @@
+"""Run the full pipeline on every fixture and score it against the manifests.
+
+    uv run python benchmarks/run_benchmark.py                 # stub provider; Jev too if a key is set
+    uv run python benchmarks/run_benchmark.py --check         # CI gate
+    uv run python benchmarks/run_benchmark.py --write-results # regenerate RESULTS.md
+
+Results are written to benchmarks/results/pipeline-<provider>.json. ``--write-results``
+renders RESULTS.md from every results file present, including the LLM baseline's
+(``llm_baseline.py``).
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from scoring import (
+    BENCHMARK_FIXTURES,
+    FIXTURES,
+    FixtureScore,
+    FixtureSpec,
+    Predicted,
+    aggregate,
+    gate,
+    load_manifest,
+    score_fixture,
+)
+
+from lantern_analysis.analyze import AnalysisOptions
+from lantern_analysis.model import DataFlowGraph
+from lantern_decisions.factory import make_provider
+from lantern_registry.resolver import LocalDirectorySource
+from lantern_worker.pipeline import PipelineConfig, PipelineResult, run_pipeline
+
+HERE = Path(__file__).resolve().parent
+RESULTS = HERE / "results"
+GAPS_ISSUE = "https://github.com/z-brenner/dpiascanner/issues/2"
+
+
+def pipeline_predictions(graph: DataFlowGraph) -> list[Predicted]:
+    out = []
+    for flow in graph.flows:
+        source = graph.nodes[flow.node_ids[0]]
+        sink = next(graph.nodes[i] for i in flow.node_ids if graph.nodes[i].kind == "sink")
+        out.append(
+            Predicted(
+                source_file=source.file,
+                source_line=source.line_start,
+                field=source.attrs.get("field"),
+                sink_file=sink.file,
+                sink_line=sink.line_start,
+                reachable=flow.reachable,
+                resolution="unresolved" if flow.unresolved else "resolved",
+            )
+        )
+    return out
+
+
+def categories_correct(result: PipelineResult, fixture: str) -> int:
+    """Manifest flows whose findings carry every expected category and no forbidden one."""
+    g = result.graph
+    correct = 0
+    for flow in load_manifest(fixture).get("flows", []):
+        sources = {
+            n.id
+            for n in g.nodes.values()
+            if n.kind == "source"
+            and any(
+                n.file == s["file"]
+                and n.line_start == s["line"]
+                and n.attrs.get("field") == s["field"]
+                for s in flow["sources"]
+            )
+        }
+        sinks = {
+            n.id
+            for n in g.nodes.values()
+            if n.kind == "sink"
+            and n.file == flow["sink"]["file"]
+            and n.line_start == flow["sink"]["line"]
+        }
+        cats = {
+            f.category
+            for f in result.findings.findings
+            if sources & set(f.node_ids) and sinks & set(f.node_ids)
+        }
+        if set(flow.get("expected_findings", [])) <= cats and not cats & set(
+            flow.get("forbidden_findings", [])
+        ):
+            correct += 1
+    return correct
+
+
+def run_fixture(spec: FixtureSpec, provider: str) -> FixtureScore:
+    config = PipelineConfig(
+        provider=make_provider(provider),
+        analysis=AnalysisOptions(dependency_depth=spec.dependency_depth),
+        package_source=LocalDirectorySource(FIXTURES / "dependency-mirror")
+        if spec.dependency_depth
+        else None,
+    )
+    started = time.monotonic()
+    result = run_pipeline(FIXTURES / spec.name, "benchmark", config)
+    duration = time.monotonic() - started
+    score = score_fixture(spec, pipeline_predictions(result.graph), duration)
+    if spec.group == "planted":
+        score.finding_categories_correct = categories_correct(result, spec.name)
+    return score
+
+
+def run(provider: str) -> dict[str, Any]:
+    scores = [run_fixture(spec, provider) for spec in BENCHMARK_FIXTURES]
+    return {
+        "system": f"pipeline ({provider} provider)",
+        "kind": "pipeline",
+        "provider": provider,
+        "status": "completed",
+        "aggregate": aggregate(scores).to_dict(),
+        "fixtures": [s.to_dict() for s in scores],
+        "gate_failures": gate(scores),
+    }
+
+
+# --------------------------------------------------------------------------- RESULTS.md
+
+
+def _pct(value: float | None) -> str:
+    return "n/a" if value is None else f"{value * 100:.0f}%"
+
+
+def _load_results() -> list[dict[str, Any]]:
+    order = {"pipeline": 0, "llm": 1}
+    items = [json.loads(p.read_text()) for p in sorted(RESULTS.glob("*.json"))]
+    return sorted(
+        items,
+        key=lambda r: (
+            order.get(r.get("kind", ""), 9),
+            r.get("status") != "completed",
+            r.get("system", ""),
+        ),
+    )
+
+
+def render_results(results: list[dict[str, Any]]) -> str:
+    lines = [
+        "# Benchmark results",
+        "",
+        "Generated by `benchmarks/run_benchmark.py --write-results` from `benchmarks/results/*.json`.",
+        "Scoring rules are in `benchmarks/scoring.py`; the LLM baseline's prompt is",
+        "`benchmarks/prompts/llm_baseline.md`.",
+        "",
+        "Fixtures: planted flows are canary-python (C01-C12), canary-typescript (C01-C12), and",
+        "unregistered-sdk-python (D01), 25 flows in all. clean-python is the false-positive control.",
+        "gaps-python holds patterns found on a real repository that the analyzer does not handle",
+        "yet; it is reported separately and is not part of the CI gate.",
+        "",
+        "## Summary",
+        "",
+        "| System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, known gaps | Wall clock |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    has_llm = any(r.get("kind") == "llm" for r in results)
+    for r in results:
+        if r.get("status") != "completed":
+            lines.append(f"| {r['system']} | not run: {r.get('reason', '')} | | | | | | |")
+            continue
+        a = r["aggregate"]
+        lines.append(
+            f"| {r['system']} | {_pct(a['recall_planted'])} | {_pct(a['precision_planted'])} | "
+            f"{a['clean_false_positives']} | {_pct(a['special_handled'])} | {_pct(a['finding_categories'])} | "
+            f"{_pct(a['recall_known_gaps'])} | {a['wall_clock_s']:.1f} s |"
+        )
+    if not has_llm:
+        lines.append(
+            "| LLM baseline | not run: no results file (see `llm_baseline.py`) | | | | | | |"
+        )
+    lines += ["", "## Per fixture", ""]
+    for r in results:
+        if r.get("status") != "completed":
+            continue
+        lines += [
+            f"### {r['system']}",
+            "",
+            "| Fixture | Recall | Precision | Predictions | Time |",
+            "|---|---|---|---|---|",
+        ]
+        for f in r["fixtures"]:
+            lines.append(
+                f"| {f['fixture']} | {_pct(f['recall'])} | {_pct(f['precision'])} | {f['predictions']} | {f['duration_s']:.1f} s |"
+            )
+        lines += ["", "| Flow | Found | Special case handled |", "|---|---|---|"]
+        for f in r["fixtures"]:
+            for flow in f["flows"]:
+                handled = (
+                    ""
+                    if flow["special"] is None
+                    else ("yes" if flow["handled"] else "no") + f" ({flow['special']})"
+                )
+                lines.append(
+                    f"| {f['fixture']} {flow['id']} | {'yes' if flow['found'] else 'no'} | {handled} |"
+                )
+        lines.append("")
+    lines += ["## Where each approach failed", ""]
+    for r in results:
+        if r.get("status") != "completed":
+            lines.append(f"- {r['system']}: not run ({r.get('reason', '')}).")
+            continue
+        missed = [
+            (f["fixture"], flow)
+            for f in r["fixtures"]
+            for flow in f["flows"]
+            if not flow["found"] or flow["handled"] is False
+        ]
+        extra = [f for f in r["fixtures"] if f["predictions"] > f["true_predictions"]]
+        if not missed and not extra:
+            lines.append(
+                f"- {r['system']}: found every flow, handled every special case, and reported no extra flows."
+            )
+        for fixture, flow in missed:
+            why = (flow["known_gap"] or "").rstrip(".") or (
+                f"found but not marked {flow['special']}" if flow["found"] else "not found"
+            )
+            lines.append(f"- {r['system']}: {fixture} {flow['id']}: {why}.")
+        for f in extra:
+            lines.append(
+                f"- {r['system']}: {f['fixture']}: {f['predictions'] - f['true_predictions']} of {f['predictions']} "
+                f"predicted flows match no manifest flow."
+            )
+    if any(
+        flow["known_gap"] and not flow["found"]
+        for r in results
+        if r.get("status") == "completed"
+        for f in r["fixtures"]
+        for flow in f["flows"]
+    ):
+        lines.append(f"- The known-gap misses are tracked in {GAPS_ISSUE}.")
+    if not has_llm:
+        lines.append("- LLM baseline: not run, so no comparison is made.")
+    lines += [
+        "",
+        "## Reproduce",
+        "",
+        "```bash",
+        "uv run python benchmarks/run_benchmark.py --write-results   # pipeline; Jev too with TYPESAFE_API_KEY and TYPESAFE_BASE_URL",
+        "ANTHROPIC_API_KEY=... uv run python benchmarks/llm_baseline.py --model <model>",
+        "uv run python benchmarks/run_benchmark.py --write-results   # re-render with the baseline included",
+        "```",
+        "",
+        "## Limits of these numbers",
+        "",
+        "- The fixtures were written together with the analyzer, and every analyzer gap found",
+        "  on them was fixed. Full recall on them shows the analyzer handles these patterns, not",
+        "  that it generalizes; gaps-python is the counterweight.",
+        "- The stub provider is an oracle tuned to the fixtures, so its finding-category score",
+        "  tests plumbing, not classification. Classification quality needs a real provider",
+        "  (see the calibration harness in packages/decisions).",
+        "- Flow metrics come from static analysis and do not depend on the decision provider;",
+        "  only the finding-category column does.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--providers", default="stub,jev", help="comma-separated: stub, jev")
+    parser.add_argument("--check", action="store_true", help="exit 1 unless the CI gate passes")
+    parser.add_argument("--write-results", action="store_true", help="regenerate RESULTS.md")
+    parser.add_argument("--no-save", action="store_true", help="do not write results files")
+    args = parser.parse_args(argv)
+    RESULTS.mkdir(exist_ok=True)
+    stub_failures: list[str] = []
+    for provider in [p.strip() for p in args.providers.split(",") if p.strip()]:
+        if provider == "jev" and not (
+            os.environ.get("TYPESAFE_API_KEY") and os.environ.get("TYPESAFE_BASE_URL")
+        ):
+            result: dict[str, Any] = {
+                "system": "pipeline (Jev provider)",
+                "kind": "pipeline",
+                "provider": "jev",
+                "status": "skipped",
+                "reason": "TYPESAFE_API_KEY and TYPESAFE_BASE_URL not set",
+            }
+        else:
+            result = run(provider)
+            a = result["aggregate"]
+            print(
+                f"{result['system']}: recall {_pct(a['recall_planted'])}, precision {_pct(a['precision_planted'])}, "
+                f"clean FP {a['clean_false_positives']}, special {_pct(a['special_handled'])}, "
+                f"known gaps {_pct(a['recall_known_gaps'])}, {a['wall_clock_s']} s"
+            )
+            if provider == "stub":
+                stub_failures = result["gate_failures"]
+        if not args.no_save:
+            (RESULTS / f"pipeline-{provider}.json").write_text(
+                json.dumps(result, indent=2, sort_keys=True) + "\n"
+            )
+    if args.write_results:
+        (HERE / "RESULTS.md").write_text(render_results(_load_results()))
+    if args.check:
+        for failure in stub_failures:
+            print(f"GATE FAILED: {failure}", file=sys.stderr)
+        return 1 if stub_failures else 0
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

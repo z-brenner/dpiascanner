@@ -1,0 +1,13 @@
+# Synthetic personal data used to exercise fixtures and to detect flows in outbound traffic.
+# All values are fictitious: example.com is reserved (RFC 2606), 202-555-01xx numbers are
+# reserved for fiction, and SSA reserves 987-65-4320 through 987-65-4329 for advertising.
+email: lantern.canary+7f3a@example.com
+email_2: lantern.referee+7f3a@example.com
+name: Lantern Canary
+phone: "+1-202-555-0147"
+ssn: 987-65-4321
+dob: "1987-06-05"
+lat: "47.620422"
+lng: "-122.349358"
+condition: canary-condition-asthma
+payment_method: pm_lantern_canary

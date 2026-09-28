@@ -1,0 +1,90 @@
+# Python transforms. kind is one of hash, encryption, reversible_encoding, truncation,
+# aggregation, deletion, tokenization.
+rules:
+  - id: python.transform.hash
+    languages: [python]
+    severity: INFO
+    message: "transform=hash"
+    metadata: {kind: transform, family: hash}
+    pattern-either:
+      - pattern: hashlib.$ALG(...)
+      - pattern: hashlib.new(...)
+      - pattern: hmac.new(...)
+      - pattern: hmac.digest(...)
+      - pattern: bcrypt.hashpw(...)
+      - pattern: $H.hash(...)
+      - pattern: argon2.hash_password(...)
+      - pattern: scrypt.hash(...)
+
+  - id: python.transform.encryption
+    languages: [python]
+    severity: INFO
+    message: "transform=encryption"
+    metadata: {kind: transform, family: encryption}
+    pattern-either:
+      - pattern: Fernet(...).encrypt(...)
+      - pattern: $F.encrypt(...)
+      - pattern: AESGCM(...).encrypt(...)
+      - pattern: ChaCha20Poly1305(...).encrypt(...)
+      - pattern: $K.encrypt(Plaintext=..., ...)
+      - pattern: nacl.secret.SecretBox(...).encrypt(...)
+
+  - id: python.transform.reversible-encoding
+    languages: [python]
+    severity: INFO
+    message: "transform=reversible_encoding"
+    metadata: {kind: transform, family: reversible_encoding}
+    pattern-either:
+      - pattern: base64.b64encode(...)
+      - pattern: base64.urlsafe_b64encode(...)
+      - pattern: base64.standard_b64encode(...)
+      - pattern: base64.b32encode(...)
+      - pattern: base64.b16encode(...)
+      - pattern: base64.b85encode(...)
+      - pattern: base64.encodebytes(...)
+      - pattern: binascii.hexlify(...)
+      - pattern: binascii.b2a_base64(...)
+      - pattern: codecs.encode(...)
+      - pattern: urllib.parse.quote(...)
+      - pattern: urllib.parse.quote_plus(...)
+      - pattern: urllib.parse.urlencode(...)
+      - pattern: zlib.compress(...)
+      - pattern: gzip.compress(...)
+      - pattern: $X.hex()
+
+  - id: python.transform.truncation
+    languages: [python]
+    severity: INFO
+    message: "transform=truncation"
+    metadata: {kind: transform, family: truncation}
+    pattern-either:
+      - pattern: $X[:$N]
+      - pattern: $X[$N:]
+      - pattern: round($X, $N)
+      - pattern: ipaddress.ip_network(...)
+      - pattern: $X.rsplit(".", 1)[0]
+
+  - id: python.transform.aggregation
+    languages: [python]
+    severity: INFO
+    message: "transform=aggregation"
+    metadata: {kind: transform, family: aggregation}
+    pattern-either:
+      - pattern: $A.year - $B.year
+      - pattern: ($A - $B).days // 365
+      - pattern: relativedelta($A, $B).years
+      - pattern: statistics.mean(...)
+      - pattern: statistics.median(...)
+      - pattern: sum(...)
+      - pattern: $Q.count()
+      - pattern: func.count(...)
+      - pattern: func.avg(...)
+
+  - id: python.transform.tokenization
+    languages: [python]
+    severity: INFO
+    message: "transform=tokenization"
+    metadata: {kind: transform, family: tokenization}
+    pattern-either:
+      - pattern: $V.tokenize(...)
+      - pattern: $V.detokenize(...)

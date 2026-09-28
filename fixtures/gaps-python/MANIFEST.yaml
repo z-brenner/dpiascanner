@@ -1,0 +1,46 @@
+# Patterns found on real repositories (full-stack-fastapi-template) that the analyzer does
+# not handle yet. Added fixture-first: the benchmark scores this fixture and reports it, but
+# the CI gate does not require it to pass. When a gap is fixed, move its flow out of
+# `known_gap` and let the gate cover it.
+# Never shown to the analyzer or to the LLM baseline.
+schema_version: 1
+fixture: gaps-python
+language: python
+flows:
+  - id: G01
+    description: Email address and name from the signup body sent to an SMTP relay with smtplib.
+    sources:
+      - {file: app/routes.py, line: 21, snippet: "user_in: UserCreate", field: email, expected_data_category: contact}
+      - {file: app/routes.py, line: 21, snippet: "user_in: UserCreate", field: full_name, expected_data_category: identifier}
+    sink: {file: app/mailer.py, line: 15, snippet: "smtp.send_message(message)", expected_sink_class: communications}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+    known_gap: "No sink rule for smtplib (SMTP.send_message, SMTP.sendmail)."
+
+  - id: G02
+    description: Signup body written through a session injected with an Annotated[Session, Depends()] alias.
+    sources:
+      - {file: app/routes.py, line: 21, snippet: "user_in: UserCreate", field: email, expected_data_category: contact}
+      - {file: app/routes.py, line: 21, snippet: "user_in: UserCreate", field: full_name, expected_data_category: identifier}
+    sink: {file: app/routes.py, line: 23, snippet: "session.add(user)", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [indefinite_retention]
+    forbidden_findings: [unresolved_flow, personal_data_to_third_party]
+
+  - id: G03
+    description: Subscriber emails read with SQLModel's session.exec(select(...)) and written to a log line.
+    sources:
+      - {file: app/routes.py, line: 31, snippet: "session.exec(select(Subscriber))", field: email, expected_data_category: contact}
+    sink: {file: app/routes.py, line: 32, snippet: "logger.info(", expected_sink_class: log}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+    known_gap: "SQLModel reads (session.exec(select(Model))) are not ORM-read sources; SQLModel table=True classes are not recognized as ORM models."

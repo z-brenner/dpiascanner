@@ -1,0 +1,90 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-packages --frozen
+      - name: Lint
+        run: make lint-py
+      - name: Test
+        run: make test-py
+
+  benchmark-gate:
+    # Fails if pipeline recall on the canary fixtures drops below 100 percent or clean-python
+    # gets any false positive (Prompt 10). gaps-python is reported, not gated.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-packages --frozen
+      - name: Benchmark gate
+        run: make benchmark-gate
+
+  dynamic:
+    # Runs the canary fixtures against fixtures/mock-server and checks that every reachable
+    # third-party sink is verified (Prompt 6). Fixture code only; see apps/worker dynamic/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: uv sync --all-packages --frozen
+      - name: Dynamic verification (local fixture backend)
+        run: make test-dynamic
+
+  sandbox:
+    # Builds the proxy and fixture images and runs the Docker sandbox, including the egress
+    # probe. Slower than the other jobs because of the image builds.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install
+        run: uv sync --all-packages --frozen
+      - name: Docker sandbox
+        run: make test-docker
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: make lint-web
+      - name: Test
+        run: make test-web

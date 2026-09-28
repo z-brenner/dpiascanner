@@ -1,0 +1,84 @@
+[project]
+name = "lantern-workspace"
+version = "0.1.0"
+description = "Lantern: repo-grounded DPIA scanner (workspace root, not a distributable package)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "lantern-analysis",
+    "lantern-decisions",
+    "lantern-report",
+    "lantern-registry",
+    "lantern-platform",
+    "lantern-api",
+    "lantern-worker",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.3",
+    "ruff>=0.6",
+    "types-networkx>=3.6.1.20260911",
+    "types-pyyaml>=6.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*", "apps/api", "apps/worker"]
+
+[tool.uv.sources]
+lantern-analysis = { workspace = true }
+lantern-decisions = { workspace = true }
+lantern-report = { workspace = true }
+lantern-registry = { workspace = true }
+lantern-platform = { workspace = true }
+lantern-api = { workspace = true }
+lantern-worker = { workspace = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["fixtures", "apps/web", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "S", "N"]
+ignore = ["S101", "N818"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "N802"]
+# Builds RESULTS.md; its Markdown table rows are long string literals.
+"benchmarks/run_benchmark.py" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = [
+    "packages/analysis/src",
+    "packages/decisions/src",
+    "packages/report/src",
+    "packages/registry/src",
+    "packages/platform/src",
+    "apps/api/src",
+    "apps/worker/src",
+]
+explicit_package_bases = true
+# proxy/ and images/ hold scripts that run inside sandbox images, against their own deps.
+exclude = ["^fixtures/", "^apps/web/", "/tests/", "/dynamic/proxy/", "/dynamic/images/"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib -ra"
+markers = [
+    "dynamic: runs Lantern's fixtures against fixtures/mock-server (needs uv and npm; ~1 min)",
+    "docker: runs the Docker sandbox (needs a Docker daemon and LANTERN_DOCKER_TESTS=1)",
+]
+testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server", "benchmarks"]
+pythonpath = ["fixtures/mock-server", "benchmarks"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI declares dependencies and parameters as call defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Body", "fastapi.Header"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lantern_analysis", "lantern_decisions", "lantern_report", "lantern_registry", "lantern_platform", "lantern_api", "lantern_worker"]

@@ -1,0 +1,83 @@
+# Statute references by finding. Citations point a reviewer to the rule that makes a
+# finding relevant; they are not legal conclusions. Regulatory citations whose effective
+# dates or numbering should be re-checked before relying on them carry `verify: true`.
+version: statutes-v1
+refs:
+  # ------------------------------------------------------------------ GDPR
+  GDPR-5-1-a: {jurisdiction: EU, citation: "GDPR Art. 5(1)(a)", title: "Lawfulness, fairness and transparency"}
+  GDPR-5-1-b: {jurisdiction: EU, citation: "GDPR Art. 5(1)(b)", title: "Purpose limitation"}
+  GDPR-5-1-c: {jurisdiction: EU, citation: "GDPR Art. 5(1)(c)", title: "Data minimisation"}
+  GDPR-5-1-e: {jurisdiction: EU, citation: "GDPR Art. 5(1)(e)", title: "Storage limitation"}
+  GDPR-5-1-f: {jurisdiction: EU, citation: "GDPR Art. 5(1)(f)", title: "Integrity and confidentiality"}
+  GDPR-6: {jurisdiction: EU, citation: "GDPR Art. 6", title: "Lawfulness of processing"}
+  GDPR-9: {jurisdiction: EU, citation: "GDPR Art. 9", title: "Processing of special categories of personal data"}
+  GDPR-8: {jurisdiction: EU, citation: "GDPR Art. 8", title: "Conditions applicable to a child's consent for information society services"}
+  GDPR-13-1-e: {jurisdiction: EU, citation: "GDPR Art. 13(1)(e)", title: "Recipients or categories of recipients must be disclosed"}
+  GDPR-13-2-a: {jurisdiction: EU, citation: "GDPR Art. 13(2)(a)", title: "Storage period or the criteria used to determine it must be disclosed"}
+  GDPR-25: {jurisdiction: EU, citation: "GDPR Art. 25", title: "Data protection by design and by default"}
+  GDPR-26: {jurisdiction: EU, citation: "GDPR Art. 26", title: "Joint controllers",
+            note: "For embedded advertising code, see CJEU C-40/17 Fashion ID (joint controllership for collection and transmission)."}
+  GDPR-28: {jurisdiction: EU, citation: "GDPR Art. 28", title: "Processor"}
+  GDPR-30: {jurisdiction: EU, citation: "GDPR Art. 30", title: "Records of processing activities"}
+  GDPR-32: {jurisdiction: EU, citation: "GDPR Art. 32", title: "Security of processing",
+            note: "Art. 32(1)(a) names pseudonymisation and encryption; a reversible encoding is neither."}
+  GDPR-35: {jurisdiction: EU, citation: "GDPR Art. 35", title: "Data protection impact assessment",
+            note: "Art. 35(3)(b): large-scale processing of special categories requires a DPIA."}
+  GDPR-44: {jurisdiction: EU, citation: "GDPR Arts. 44-46", title: "Transfers to third countries and appropriate safeguards"}
+  GDPR-R26: {jurisdiction: EU, citation: "GDPR Recital 26", title: "Identifiability; pseudonymised data remains personal data"}
+  GDPR-R30: {jurisdiction: EU, citation: "GDPR Recital 30", title: "Online identifiers such as IP addresses and cookie identifiers"}
+  GDPR-R39: {jurisdiction: EU, citation: "GDPR Recital 39", title: "Storage periods limited to a strict minimum; time limits for erasure or review"}
+  GDPR-R51: {jurisdiction: EU, citation: "GDPR Recitals 51-54", title: "Special categories deserve specific protection"}
+  GDPR-R83: {jurisdiction: EU, citation: "GDPR Recital 83", title: "Security measures such as encryption"}
+  # ------------------------------------------------------------------ California (CCPA as amended by the CPRA)
+  CPRA-100-a-3: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.100(a)(3)", title: "Notice of retention period for each category of personal information"}
+  CPRA-100-c: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.100(c)", title: "Collection, use, retention and sharing must be reasonably necessary and proportionate"}
+  CPRA-100-e: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.100(e)", title: "Reasonable security procedures and practices"}
+  CPRA-120: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.120", title: "Right to opt out of sale or sharing"}
+  CPRA-121: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.121", title: "Right to limit use and disclosure of sensitive personal information"}
+  CPRA-135: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.135", title: "Methods for opt-out: 'Do Not Sell or Share' and 'Limit' links, opt-out preference signals"}
+  CPRA-140-ad: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.140(ad)", title: "Definition of sell"}
+  CPRA-140-ae: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.140(ae)", title: "Definition of sensitive personal information"}
+  CPRA-140-ag: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.140(ag)", title: "Definition of service provider (requires a written contract)"}
+  CPRA-140-ah: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.140(ah)", title: "Definition of share (cross-context behavioral advertising)"}
+  CPRA-140-w: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.140(w)", title: "Definition of precise geolocation (radius of 1,850 feet)"}
+  CPRA-150: {jurisdiction: US-CA, citation: "Cal. Civ. Code § 1798.150", title: "Private right of action for breaches of nonencrypted and nonredacted personal information",
+             note: "Base64 or hex encoding is not encryption for this purpose."}
+  CCR-7050: {jurisdiction: US-CA, citation: "Cal. Code Regs. tit. 11, §§ 7050-7051", title: "Service provider and contractor obligations and contract requirements"}
+  CCR-7150: {jurisdiction: US-CA, citation: "Cal. Code Regs. tit. 11, § 7150 et seq.", title: "CPPA risk assessment regulations", verify: true}
+  # ------------------------------------------------------------------ other US state laws
+  VA-580: {jurisdiction: US-VA, citation: "Va. Code § 59.1-580", title: "Data protection assessments (VCDPA)"}
+  CO-1309: {jurisdiction: US-CO, citation: "C.R.S. § 6-1-1309", title: "Data protection assessments (Colorado Privacy Act)"}
+  CT-522: {jurisdiction: US-CT, citation: "Conn. Gen. Stat. § 42-522", title: "Data protection assessments (CTDPA)", verify: true}
+  WA-MHMDA: {jurisdiction: US-WA, citation: "RCW 19.373 (My Health My Data Act)", title: "Consumer health data: consent for collection and sharing"}
+  IL-BIPA: {jurisdiction: US-IL, citation: "740 ILCS 14 (BIPA)", title: "Biometric identifiers and information"}
+  COPPA: {jurisdiction: US, citation: "15 U.S.C. §§ 6501-6506; 16 C.F.R. Part 312", title: "Children's Online Privacy Protection"}
+
+by_category:
+  personal_data_to_third_party: [GDPR-28, GDPR-13-1-e, GDPR-5-1-c, GDPR-30, CPRA-140-ag, CCR-7050]
+  special_category_processing: [GDPR-9, GDPR-35, GDPR-R51, CPRA-140-ae, CPRA-121]
+  reversible_obfuscation: [GDPR-32, GDPR-R83, GDPR-5-1-f, CPRA-100-e, CPRA-150]
+  indefinite_retention: [GDPR-5-1-e, GDPR-13-2-a, GDPR-R39, CPRA-100-a-3, CPRA-100-c]
+  logging_of_personal_data: [GDPR-5-1-c, GDPR-5-1-f, GDPR-25, GDPR-32, CPRA-100-e]
+  cross_border_ambiguity: [GDPR-44, GDPR-30, GDPR-13-1-e]
+  sale_or_share_candidate: [CPRA-140-ad, CPRA-140-ah, CPRA-120, CPRA-135, CPRA-140-ag]
+  unresolved_flow: [GDPR-35, GDPR-30]
+  unreachable_flow: [GDPR-25]
+  mitigated_partially: [GDPR-25, GDPR-28, GDPR-32]
+  personal_data_processing: [GDPR-6, GDPR-30, GDPR-5-1-b]
+  observed_unexpected_destination: [GDPR-30, GDPR-13-1-e, GDPR-28, CPRA-140-ag]
+
+by_data_category:
+  health: [GDPR-9, WA-MHMDA, CPRA-140-ae]
+  biometric: [GDPR-9, IL-BIPA, CPRA-140-ae]
+  precise_location: [CPRA-140-w, CPRA-140-ae, CPRA-121]
+  government_id: [CPRA-140-ae, CPRA-121]
+  credentials: [CPRA-140-ae, GDPR-32]
+  identifier: [GDPR-R30, GDPR-R26]
+
+by_destination:
+  ad_tech: [GDPR-26, CPRA-140-ah, CPRA-120]
+  unknown_third_party: [GDPR-28, CPRA-140-ag]
+  ai_model_provider: [GDPR-28, GDPR-35]
+  cross_border: [GDPR-44]
+  cloud_provider: [GDPR-28, GDPR-44]

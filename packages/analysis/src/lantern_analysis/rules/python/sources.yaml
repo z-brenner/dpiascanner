@@ -1,0 +1,124 @@
+# Python sources. mode=container: fields read from the matched value later become sources
+# when their names hit the lexicon. mode=field: the match carries the field name in
+# key=... of the message. mode=orm_read: the message carries model=...
+rules:
+  - id: python.source.http.flask-request-container
+    languages: [python]
+    severity: INFO
+    message: "mode=container kind=http_body"
+    metadata: {kind: source, family: http}
+    pattern-either:
+      - pattern: flask.request.form
+      - pattern: flask.request.args
+      - pattern: flask.request.values
+      - pattern: flask.request.json
+      - pattern: flask.request.get_json(...)
+      - pattern: request.form
+      - pattern: request.args
+      - pattern: request.values
+      - pattern: request.json
+      - pattern: request.get_json(...)
+      - pattern: request.POST
+      - pattern: request.GET
+      - pattern: request.data
+      - pattern: json.loads(request.body)
+      - pattern: await $REQ.json()
+      - pattern: await $REQ.form()
+      - pattern: $REQ.query_params
+      - pattern: $REQ.path_params
+
+  - id: python.source.http.request-field
+    languages: [python]
+    severity: INFO
+    message: "mode=field kind=http_param key=$KEY"
+    metadata: {kind: source, family: http}
+    pattern-either:
+      - pattern: request.form[$KEY]
+      - pattern: request.form.get($KEY, ...)
+      - pattern: request.args[$KEY]
+      - pattern: request.args.get($KEY, ...)
+      - pattern: request.values.get($KEY, ...)
+      - pattern: request.POST[$KEY]
+      - pattern: request.POST.get($KEY, ...)
+      - pattern: request.GET[$KEY]
+      - pattern: request.GET.get($KEY, ...)
+      - pattern: $REQ.query_params.get($KEY, ...)
+      - pattern: $REQ.query_params[$KEY]
+
+  - id: python.source.http.header-or-cookie
+    languages: [python]
+    severity: INFO
+    message: "mode=field kind=header_cookie key=$KEY"
+    metadata: {kind: source, family: http}
+    pattern-either:
+      - pattern: $REQ.headers.get($KEY, ...)
+      - pattern: $REQ.headers[$KEY]
+      - pattern: $REQ.cookies.get($KEY, ...)
+      - pattern: $REQ.cookies[$KEY]
+      - pattern: request.COOKIES.get($KEY, ...)
+      - pattern: request.COOKIES[$KEY]
+      - pattern: request.META.get($KEY, ...)
+      - pattern: request.META[$KEY]
+
+  - id: python.source.http.client-ip
+    languages: [python]
+    severity: INFO
+    message: "mode=field kind=header_cookie key=client_ip"
+    metadata: {kind: source, family: http}
+    pattern-either:
+      - pattern: $REQ.client.host
+      - pattern: request.remote_addr
+      - pattern: request.access_route
+
+  - id: python.source.upload.files
+    languages: [python]
+    severity: INFO
+    message: "mode=container kind=upload"
+    metadata: {kind: source, family: upload}
+    pattern-either:
+      - pattern: request.files
+      - pattern: request.FILES
+      - pattern: await $F.read()
+
+  - id: python.source.env.read
+    languages: [python]
+    severity: INFO
+    message: "mode=field kind=env key=$KEY"
+    metadata: {kind: source, family: env}
+    pattern-either:
+      - pattern: os.environ.get($KEY, ...)
+      - pattern: os.environ[$KEY]
+      - pattern: os.getenv($KEY, ...)
+
+  - id: python.source.orm.sqlalchemy-read
+    languages: [python]
+    severity: INFO
+    message: "mode=orm_read kind=orm_read model=$MODEL"
+    metadata: {kind: source, family: orm}
+    patterns:
+      - pattern-either:
+          - pattern: $S.query($MODEL, ...)
+          - pattern: $S.get($MODEL, ...)
+          - pattern: $S.scalars(select($MODEL, ...))
+          - pattern: $S.execute(select($MODEL, ...))
+          - pattern: $S.scalar(select($MODEL, ...))
+      - metavariable-regex:
+          metavariable: $S
+          regex: (?i)^(.*\.)?(_?session|_?db|sess|db_session|s)$
+      - metavariable-regex:
+          metavariable: $MODEL
+          regex: ^[A-Z][A-Za-z0-9_]*$
+
+  - id: python.source.orm.django-read
+    languages: [python]
+    severity: INFO
+    message: "mode=orm_read kind=orm_read model=$MODEL"
+    metadata: {kind: source, family: orm}
+    patterns:
+      - pattern: $MODEL.objects.$OP(...)
+      - metavariable-regex:
+          metavariable: $OP
+          regex: ^(get|filter|all|first|last|values|values_list|exclude|get_or_create|select_related|prefetch_related|order_by)$
+      - metavariable-regex:
+          metavariable: $MODEL
+          regex: ^[A-Z][A-Za-z0-9_]*$

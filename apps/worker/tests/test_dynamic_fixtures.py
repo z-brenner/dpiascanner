@@ -20,6 +20,8 @@ import yaml
 from lantern_analysis.analyze import analyze_repo
 from lantern_analysis.model import DataFlowGraph, Node
 from lantern_decisions.stub import StubProvider
+from lantern_report.context import RunInfo
+from lantern_report.dpia import build_report
 from lantern_worker.dynamic import (
     DynamicSettings,
     DynamicVerifier,
@@ -184,6 +186,19 @@ def test_pipeline_carries_verification_into_findings():
     assert not [
         f for f in result.findings.findings if f.category == "observed_unexpected_destination"
     ]
+    # The report's coverage section says dynamic verification ran and lists sink statuses.
+    report = build_report(
+        result.graph, result.findings, result.decisions, RunInfo("canary-python", "fixture-sha")
+    )
+    coverage = next(sec for sec in report.sections if sec.id == "coverage")
+    dynamic_rows = dict(coverage.tables[2].rows)
+    assert dynamic_rows["Dynamic verification ran"] == "yes"
+    assert dynamic_rows["Sinks verified"] == "7"
+    statuses = {(row[1], row[3]) for row in coverage.tables[3].rows}
+    assert ("app/partners.py:11", "verified") in statuses
+    assert ("app/legacy.py:14", "inferred") in statuses
+    likelihoods = {f["id"]: f["likelihood"] for f in report.findings}
+    assert likelihoods[unresolved[0].id] == "probable"  # observed dynamically
 
 
 def test_local_backend_refuses_repositories_outside_fixtures(tmp_path):

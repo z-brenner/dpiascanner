@@ -158,6 +158,15 @@ class FindingsResult:
             "unresolved_decisions": [r.to_dict() for r in self.unresolved_decisions],
         }
 
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> FindingsResult:
+        return cls(
+            findings=[Finding.from_dict(f) for f in data["findings"]],
+            unresolved_decisions=[UnresolvedReason(**r) for r in data["unresolved_decisions"]],
+            threshold=float(data["threshold"]),
+            severity_version=str(data["severity_version"]),
+        )
+
 
 @dataclass
 class _Partial:

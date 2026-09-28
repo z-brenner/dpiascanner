@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from lantern_analysis.model import DataFlowGraph
-from lantern_report.findings import Finding, FindingsResult, UnresolvedReason
+from lantern_report.findings import FindingsResult
 
 
 @dataclass(frozen=True)
@@ -71,12 +71,7 @@ class FileRunStore:
 
     def load_findings(self, run_id: str) -> FindingsResult:
         data = json.loads((self._dir(run_id) / "findings.json").read_text())
-        return FindingsResult(
-            findings=[Finding.from_dict(f) for f in data["findings"]],
-            unresolved_decisions=[UnresolvedReason(**r) for r in data["unresolved_decisions"]],
-            threshold=float(data["threshold"]),
-            severity_version=str(data["severity_version"]),
-        )
+        return FindingsResult.from_dict(data)
 
     def load_graph(self, run_id: str) -> DataFlowGraph:
         return DataFlowGraph.from_json((self._dir(run_id) / "graph.json").read_text())

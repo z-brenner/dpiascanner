@@ -14,6 +14,7 @@ uv run python -m lantern_analysis path/to/repo --out graph.json --commit <sha>
 
 ```python
 from lantern_analysis.analyze import analyze_repo
+
 graph = analyze_repo("path/to/repo", commit="<sha>")
 ```
 

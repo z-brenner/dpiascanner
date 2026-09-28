@@ -15,7 +15,8 @@ def test_python_modules_under_a_source_root_resolve(tmp_path: Path) -> None:
     _write(
         tmp_path,
         "backend/app/routes.py",
-        "from app.models import UserCreate\n\ndef create(user_in: UserCreate):\n    return user_in\n",
+        "from app.models import UserCreate\n\n"
+        "def create(user_in: UserCreate):\n    return user_in\n",
     )
     project = Project.load(
         tmp_path,

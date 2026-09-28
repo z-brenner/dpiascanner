@@ -26,6 +26,7 @@ class SeverityInputs:
     destination_class: str | None
     min_identifiability: int | None
     reachable: bool
+    no_personal_data_observed: bool = False
 
     def conditions(self) -> set[str]:
         out: set[str] = set()
@@ -41,6 +42,8 @@ class SeverityInputs:
             out.add("low_identifiability")
         if not self.reachable:
             out.add("unreachable")
+        if self.no_personal_data_observed:
+            out.add("no_personal_data_observed")
         return out
 
 

@@ -8,6 +8,8 @@ dependencies = [
     "lantern-decisions",
     "lantern-registry",
     "lantern-report",
+    "cryptography>=43",
+    "pyyaml>=6.0",
 ]
 
 [tool.uv.sources]

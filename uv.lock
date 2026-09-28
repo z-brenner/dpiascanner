@@ -547,18 +547,22 @@ name = "lantern-worker"
 version = "0.1.0"
 source = { editable = "apps/worker" }
 dependencies = [
+    { name = "cryptography" },
     { name = "lantern-analysis" },
     { name = "lantern-decisions" },
     { name = "lantern-registry" },
     { name = "lantern-report" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=43" },
     { name = "lantern-analysis", editable = "packages/analysis" },
     { name = "lantern-decisions", editable = "packages/decisions" },
     { name = "lantern-registry", editable = "packages/registry" },
     { name = "lantern-report", editable = "packages/report" },
+    { name = "pyyaml", specifier = ">=6.0" },
 ]
 
 [[package]]

@@ -27,6 +27,7 @@ reproduced.
 | `unreachable_flow` | A path not reachable from any entry point. Always informational, and it gets no other category. |
 | `mitigated_partially` | A registry SDK with a scrubber hook that covers some flows while others leak. |
 | `personal_data_processing` | Added beyond the prompt: a reachable personal-data flow that no other category covers (for example Stripe, or a first-party write with a retention policy). Without it, those flows would be absent from the DPIA's description of processing. |
+| `observed_unexpected_destination` | Added with dynamic verification: the sandbox saw a request to a host that no static sink names. Evidence is the host, methods, paths, body field names, and canaries observed. Base medium; one level lower when no canary was in the requests (`no_personal_data_observed`, severity table v2). |
 
 **Confidence.** A finding whose supporting decisions include one below the threshold
 (default 0.75) is `unresolved`. Its `unresolved_reasons` list each such decision with its

@@ -11,9 +11,13 @@ persisted through a `RunStore`.
 `pipeline.run_pipeline(repo, commit, PipelineConfig(provider))` runs, in order:
 
 1. `analyze_repo` to build the graph;
-2. `build_targets` to build redacted, bounded decision states;
-3. `classify`, one batched provider call over all targets, with each state checked by
+2. dynamic verification, when `PipelineConfig.dynamic` is set (see
+   [`dynamic/README.md`](src/lantern_worker/dynamic/README.md)): run the repository in the
+   Docker sandbox with canary values and mark each sink `verified`, `inferred`, or
+   `observed-unexpected`;
+3. `build_targets` to build redacted, bounded decision states;
+4. `classify`, one batched provider call over all targets, with each state checked by
    the secrets `payload_guard` first;
-4. `assemble_findings`.
+5. `assemble_findings`, which carries each sink's verification status as evidence.
 
 `FileRunStore` persists runs to disk for local use and tests; the API adds a SQL store.

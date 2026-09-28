@@ -45,6 +45,7 @@ CATEGORIES = (
     "unreachable_flow",
     "mitigated_partially",
     "personal_data_processing",
+    "observed_unexpected_destination",
 )
 TITLES = {
     "personal_data_to_third_party": "Personal data sent to a third party",
@@ -58,6 +59,20 @@ TITLES = {
     "unreachable_flow": "Personal data flow in unreachable code",
     "mitigated_partially": "Vendor mitigation covers only some paths",
     "personal_data_processing": "Personal data processed",
+    "observed_unexpected_destination": "Request to a destination static analysis did not find",
+}
+# Canary kinds seen by dynamic verification, as data categories (question set v1 labels).
+CANARY_DATA_CATEGORIES = {
+    "email": "contact",
+    "email_2": "contact",
+    "phone": "contact",
+    "name": "identifier",
+    "ssn": "government_id",
+    "dob": "demographic",
+    "lat": "precise_location",
+    "lng": "precise_location",
+    "condition": "health",
+    "payment_method": "financial",
 }
 _ANON = re.compile(r"@\d+(?::\d+)?")
 
@@ -360,6 +375,30 @@ class FindingsEngine:
                     leaking_sinks=sorted({s.id for _, s in leaking}),
                 )
 
+    def _observed_unexpected(self) -> None:
+        """Dynamic-only sink nodes: hosts the application contacted that no static sink names."""
+        for node in sorted(self.g.nodes.values(), key=lambda n: n.id):
+            dynamic = node.attrs.get("dynamic") or {}
+            if dynamic.get("status") != "observed-unexpected":
+                continue
+            canaries = list(dynamic.get("canaries", []))
+            self._add(
+                "observed_unexpected_destination",
+                node,
+                None,
+                (),
+                host=(dynamic.get("hosts") or [""])[0],
+                methods=dynamic.get("methods", []),
+                paths=dynamic.get("paths", []),
+                canaries=canaries,
+                encodings=dynamic.get("encodings", []),
+                body_field_names=dynamic.get("body_field_names", []),
+                candidate_sinks=dynamic.get("candidate_sinks", []),
+                observed_data_categories=sorted(
+                    {CANARY_DATA_CATEGORIES[c] for c in canaries if c in CANARY_DATA_CATEGORIES}
+                ),
+            )
+
     # ------------------------------------------------------------------ assembly
 
     def run(self) -> FindingsResult:
@@ -367,6 +406,7 @@ class FindingsEngine:
             self._per_flow(flow)
         self._special_category()
         self._mitigated_partially()
+        self._observed_unexpected()
         findings = [self._finalize(p) for p in self.partials.values()]
         findings.sort(
             key=lambda f: (
@@ -403,6 +443,11 @@ class FindingsEngine:
             {a for s in sources if (a := self.answer(s.id, "data_category")) and a != "none"}
         )
         destination = self.answer(sinks[0].id, "destination_class") if sinks else None
+        observed = p.evidence.get("observed_data_categories")
+        dynamic_only = p.category == "observed_unexpected_destination"
+        if dynamic_only:
+            data_categories = list(observed or [])
+            destination = "unknown_third_party" if observed else None
         flow_edges = [
             self.g.edges[e]
             for e in edge_ids
@@ -427,8 +472,15 @@ class FindingsEngine:
                 destination_class=destination,
                 min_identifiability=min((i for i in idents if i is not None), default=None),
                 reachable=reachable,
+                no_personal_data_observed=dynamic_only and not observed,
             ),
         )
+        verification = {
+            n.id: {k: n.attrs["dynamic"].get(k) for k in ("status", "reason", "hosts", "canaries")}
+            for n in sinks
+            if n.attrs.get("dynamic") and not dynamic_only
+        }
+        evidence = {**p.evidence, "verification": verification} if verification else p.evidence
         reasons = []
         for target_id, question in sorted(p.support):
             decision = self.decisions[(target_id, question)]
@@ -467,7 +519,7 @@ class FindingsEngine:
             destination_class=destination,
             classification=classification,
             unresolved_reasons=reasons,
-            evidence=p.evidence,
+            evidence=evidence,
             **self.meta,
         )
 

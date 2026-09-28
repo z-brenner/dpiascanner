@@ -3,7 +3,7 @@ UV ?= uv
 PNPM ?= pnpm
 PY_SRC := packages apps/api apps/worker benchmarks
 
-.PHONY: help install lint lint-py lint-web fmt test test-py test-web run services api worker web clean
+.PHONY: help install lint lint-py lint-web fmt test test-py test-dynamic test-docker test-web run services api worker web clean
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -28,8 +28,14 @@ fmt: ## Auto-format Python
 
 test: test-py test-web ## Run all tests
 
-test-py:
-	$(UV) run pytest
+test-py: ## Python tests (fast; excludes dynamic and docker)
+	$(UV) run pytest -m "not dynamic and not docker"
+
+test-dynamic: ## Run the fixtures under dynamic verification against the mock server
+	LANTERN_REQUIRE_DYNAMIC=1 $(UV) run pytest -m dynamic
+
+test-docker: ## Run the Docker sandbox integration tests (builds images; needs Docker)
+	LANTERN_DOCKER_TESTS=1 $(UV) run pytest -m docker
 
 test-web:
 	$(PNPM) -r run test

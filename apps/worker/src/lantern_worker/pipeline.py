@@ -1,7 +1,9 @@
-"""The run pipeline: analyze, build decision states, classify, and assemble findings.
+"""The run pipeline: analyze, verify dynamically (optional), classify, and assemble findings.
 
-Dynamic verification and report rendering hook in after classification (see the worker's
-job runner); this module stays synchronous and side-effect free apart from the store.
+Dynamic verification runs after the graph is built and before classification, so findings
+carry each sink's verification status and dynamic-only destinations become findings too.
+Report rendering hooks in after this (see the worker's job runner); this module stays
+synchronous and side-effect free apart from the store and the verification sandbox.
 """
 
 from __future__ import annotations
@@ -27,9 +29,17 @@ from lantern_report.findings import (
     assemble_findings,
     decision_id,
 )
+from lantern_worker.dynamic.base import Backend, Limits
+from lantern_worker.dynamic.verifier import DynamicVerifier, VerificationReport
 from lantern_worker.store import DecisionRow, RunStore
 
 StageCallback = Callable[[str, dict[str, Any]], None]
+
+
+@dataclass
+class DynamicConfig:
+    backend: Backend
+    limits: Limits = field(default_factory=Limits)
 
 
 @dataclass
@@ -39,6 +49,7 @@ class PipelineConfig:
     threshold: float = DEFAULT_THRESHOLD
     analysis: AnalysisOptions = field(default_factory=AnalysisOptions)
     package_source: PackageSource | None = None
+    dynamic: DynamicConfig | None = None
 
 
 @dataclass
@@ -49,6 +60,7 @@ class PipelineResult:
     decisions: list[DecisionResult]
     findings: FindingsResult
     timings: dict[str, float]
+    verification: VerificationReport | None = None
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -61,6 +73,16 @@ class PipelineResult:
             "unresolved_findings": len(self.findings.unresolved),
             "unresolved_decisions": len(self.findings.unresolved_decisions),
             "coverage": self.graph.summary.get("coverage", {}),
+            "dynamic": (
+                {
+                    "status": self.verification.status,
+                    "counts": self.verification.reconciliation.counts()
+                    if self.verification.reconciliation
+                    else {},
+                }
+                if self.verification
+                else None
+            ),
             "timings": self.timings,
         }
 
@@ -129,6 +151,16 @@ def run_pipeline(
     timings["analyze"] = round(time.monotonic() - started, 3)
     stage("graph", flows=len(graph.flows), coverage=graph.summary.get("coverage", {}))
 
+    verification: VerificationReport | None = None
+    if config.dynamic is not None:
+        t = time.monotonic()
+        stage("verify", backend=config.dynamic.backend.name)
+        verifier = DynamicVerifier(config.dynamic.backend, config.dynamic.limits)
+        verification = verifier.verify(Path(repo), graph)
+        timings["verify"] = round(time.monotonic() - t, 3)
+        counts = verification.reconciliation.counts() if verification.reconciliation else {}
+        stage("verified", status=verification.status, counts=counts)
+
     t = time.monotonic()
     targets = build_targets(graph)
     stage("classify", targets=len(targets))
@@ -138,7 +170,7 @@ def run_pipeline(
     t = time.monotonic()
     findings = assemble_findings(graph, decisions, config.threshold)
     timings["findings"] = round(time.monotonic() - t, 3)
-    result = PipelineResult(run_id, graph, targets, decisions, findings, timings)
+    result = PipelineResult(run_id, graph, targets, decisions, findings, timings, verification)
     if store is not None:
         store.save_graph(run_id, graph)
         store.save_decisions(run_id, decision_rows(run_id, decisions))

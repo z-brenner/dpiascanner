@@ -59,10 +59,15 @@ mypy_path = [
     "apps/worker/src",
 ]
 explicit_package_bases = true
-exclude = ["^fixtures/", "^apps/web/", "/tests/"]
+# proxy/ and images/ hold scripts that run inside sandbox images, against their own deps.
+exclude = ["^fixtures/", "^apps/web/", "/tests/", "/dynamic/proxy/", "/dynamic/images/"]
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib -ra"
+markers = [
+    "dynamic: runs Lantern's fixtures against fixtures/mock-server (needs uv and npm; ~1 min)",
+    "docker: runs the Docker sandbox (needs a Docker daemon and LANTERN_DOCKER_TESTS=1)",
+]
 testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server"]
 pythonpath = ["fixtures/mock-server"]
 

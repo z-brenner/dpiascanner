@@ -65,6 +65,7 @@ by_category:
   unreachable_flow: [GDPR-25]
   mitigated_partially: [GDPR-25, GDPR-28, GDPR-32]
   personal_data_processing: [GDPR-6, GDPR-30, GDPR-5-1-b]
+  observed_unexpected_destination: [GDPR-30, GDPR-13-1-e, GDPR-28, CPRA-140-ag]
 
 by_data_category:
   health: [GDPR-9, WA-MHMDA, CPRA-140-ae]

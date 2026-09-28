@@ -12,7 +12,9 @@
 #                           ai_model_provider, or cross_border
 #   low_identifiability     the lowest identifiability along the path is 2 or less
 #   unreachable             no path in the finding is reachable from an entry point
-version: severity-v1
+#   no_personal_data_observed
+#                           a dynamic-only finding whose requests carried no canary value
+version: severity-v2
 levels: [informational, low, medium, high, critical]
 base:
   personal_data_to_third_party: medium
@@ -26,10 +28,12 @@ base:
   unreachable_flow: informational
   mitigated_partially: medium
   personal_data_processing: low
+  observed_unexpected_destination: medium
 modifiers:
   - {when: special_category, change: 1}
   - {when: relates_to_minor, change: 1}
   - {when: sensitive_data, change: 1}
   - {when: risky_destination, change: 1}
   - {when: low_identifiability, change: -1}
+  - {when: no_personal_data_observed, change: -1}
 never_raise: [unreachable_flow]

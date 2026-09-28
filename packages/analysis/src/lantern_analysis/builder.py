@@ -9,6 +9,7 @@ from typing import Any
 
 from lantern_analysis.configres import ConfigValue, attach_config
 from lantern_analysis.detect import Detection, SinkSpec, SourceSpec
+from lantern_analysis.endpoints import EndpointResolver
 from lantern_analysis.mitigations import MitigationEvidence
 from lantern_analysis.model import DataFlowGraph, Edge, Flow, Node, Step, stable_id
 from lantern_analysis.project import Project
@@ -77,6 +78,7 @@ class GraphBuilder:
             options=options,
         )
         self.retention = RetentionScanner(self.project, inputs.detection)
+        self.endpoints = EndpointResolver(self.project)
 
     # ------------------------------------------------------------------ nodes
 
@@ -131,6 +133,11 @@ class GraphBuilder:
             self.project, call.span.file, call.span.start_line, call.span.end_line
         )
         config, conflict = attach_config(self.project, sink, self.i.config)
+        endpoints = (
+            self.endpoints.resolve(sink, config)
+            if sink.family in ALWAYS_LISTED_FAMILIES or sink.registry is not None
+            else {"hosts": [], "evidence": {}}
+        )
         attrs: dict[str, Any] = {
             "family": sink.family,
             "method": sink.method,
@@ -142,6 +149,7 @@ class GraphBuilder:
             "reachable": self.i.reach.is_reachable(sink.fid),
             "config": config,
             "config_conflict": conflict,
+            "endpoints": endpoints,
             "registry": sink.registry.summary() if sink.registry is not None else None,
             "dependency": (
                 {

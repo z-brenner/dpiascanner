@@ -43,7 +43,12 @@ graph = analyze_repo("path/to/repo", commit="<sha>")
    hooks such as Sentry `before_send` and what they scrub (`mitigations.py`), retention
    evidence such as TTL fields, deletion jobs, and crontab schedules (`retention.py`), and
    cross-file config with conflict flags (`configres.py`).
-8. **Build the graph** (`builder.py`). Node and edge ids are hashes of stable properties,
+8. **Expected destinations** (`endpoints.py`): every network sink gets
+   `attrs["endpoints"]`, the hosts it should reach, from the registry entry, URL literals in
+   its arguments (following module constants), attached config values, code defaults of
+   environment reads (`os.environ.get("X", "https://...")`, `process.env.X ?? "https://..."`),
+   and profiled dependency source. Dynamic verification matches observed requests to these.
+9. **Build the graph** (`builder.py`). Node and edge ids are hashes of stable properties,
    so the same code gives the same ids across runs. Snippets are bounded and redacted
    (`secrets.py`) before they enter the graph.
 

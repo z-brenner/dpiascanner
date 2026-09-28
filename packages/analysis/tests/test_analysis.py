@@ -289,3 +289,39 @@ def test_no_secrets_in_graph(canary: tuple[dict[str, Any], DataFlowGraph]) -> No
     text = graph.to_json()
     assert "AKIAIOSFODNN7EXAMPLE" not in text
     assert "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" not in text
+
+
+EXPECTED_ENDPOINTS = {
+    # flow id -> (expected host, evidence kind) on the flow's sink node
+    "C02": ("api.mixpanel.com", "registry"),
+    "C04": ("api.open-weather-data.example", "env-default"),
+    "C08": ("hooks.partner-crm.example", "env-default"),
+    "C10": ("api.stripe.com", "registry"),
+    "C11": ("legacy-crm.partner.example", "literal"),
+    "C12": ("*.amazonaws.com", "registry"),
+}
+
+
+def test_network_sinks_name_their_expected_hosts(
+    canary: tuple[dict[str, Any], DataFlowGraph],
+) -> None:
+    """Dynamic verification matches observed requests against these hosts."""
+    manifest, graph = canary
+    flows = _flows(manifest)
+    for flow_id, (host, evidence) in EXPECTED_ENDPOINTS.items():
+        endpoints = sink_node(graph, flows[flow_id]["sink"]).attrs["endpoints"]
+        assert host in endpoints["hosts"], (flow_id, endpoints)
+        assert endpoints["evidence"][host] == evidence, (flow_id, endpoints)
+    for node in graph.nodes.values():
+        if node.kind == "sink" and node.attrs.get("family") in ("orm", "log", "file"):
+            assert "endpoints" not in node.attrs or not node.attrs["endpoints"]["hosts"]
+
+
+def test_host_of() -> None:
+    from lantern_analysis.endpoints import host_of
+
+    assert host_of("https://publickey@o0.ingest.sentry.io/0") == "o0.ingest.sentry.io"
+    assert host_of("https://API.Stripe.com:443/v1") == "api.stripe.com"
+    assert host_of("http://localhost:8080/x") == "localhost"
+    assert host_of("postgresql://u:p@db.internal:5432/app") is None
+    assert host_of("not a url") is None

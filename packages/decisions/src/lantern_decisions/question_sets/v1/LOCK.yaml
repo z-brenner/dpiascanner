@@ -1,0 +1,9 @@
+# Released question sets are immutable. Regenerating this file to hide an edit defeats
+# the point; add question_sets/v2 instead.
+fingerprints:
+  edge_v1: 6bb6a818348039ac6254204a50a4eac9b119d3666e5c0582d5f6184fe7b7ff56
+  retention_v1: 2606a37b6daae295b0cfeb28603bd4b3a3b95fa500a21982bf3f5cef2c59a9f6
+  sink_v1: bd473b2187a379f80e1044164dbe03efe5743e80aa199f61b83f62435be1ca36
+  source_v1: b1268675960bdf1bd58afa36a90107a5992d67bfed6f6e715d86401d5023306b
+released: '2026-09-28'
+version: v1

@@ -1,0 +1,57 @@
+id: edge
+version: v1
+applies_to: edge
+description: >-
+  Questions about an edge: one propagation step that carries personal data from an upstream
+  node to a downstream node, with the code evidence for each step.
+questions:
+  - id: transformation
+    kind: choice
+    description: >-
+      How does this step transform the personal data it carries? Judge by what the code does,
+      not by function names, docstrings, or comments. A function named encrypt that only
+      base64-encodes is reversible_encoding.
+    options:
+      - id: passthrough
+        description: >-
+          The value is copied, formatted, concatenated, normalized, or wrapped in a larger
+          structure. The original remains fully recoverable.
+      - id: hashed
+        description: >-
+          A one-way cryptographic hash such as SHA-256, bcrypt, or HMAC. Unsalted hashes of
+          low-entropy values such as emails or phone numbers can be reversed by enumeration.
+      - id: encrypted
+        description: >-
+          Encryption with a key held separately from the data, such as AES-GCM, Fernet, or a
+          KMS call. The value is recoverable only with the key.
+      - id: tokenized
+        description: >-
+          Replaced by a random token whose mapping to the original is held in a separate vault
+          or service.
+      - id: aggregated
+        description: >-
+          Reduced to a derived or aggregate value from which the original cannot be recovered,
+          such as age computed from a date of birth, a count, an average, or a bucket.
+      - id: truncated
+        description: >-
+          Part of the value is removed, such as keeping the last four digits, masking an IP
+          address to /24, or rounding coordinates.
+      - id: dropped
+        description: The value is removed or not propagated past this step.
+      - id: reversible_encoding
+        description: >-
+          An encoding anyone can reverse without a key, such as base64, hex, URL encoding,
+          ROT13, or compression. For risk purposes this is passthrough.
+  - id: residual_identifiability
+    kind: score
+    description: >-
+      After this step, how directly does the value that continues downstream identify a
+      person?
+    min: 1
+    max: 5
+    anchors:
+      1: Anonymous. Cannot be linked to a person even with other data.
+      2: Aggregate or coarse. Linkable only with substantial other data.
+      3: Pseudonymous. Identifies a person to whoever holds a mapping.
+      4: Indirectly identifying. Identifies a person with modest effort.
+      5: Directly identifying.

@@ -64,3 +64,6 @@ exclude = ["^fixtures/", "^apps/web/", "/tests/"]
 addopts = "--import-mode=importlib -ra"
 testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server"]
 pythonpath = ["fixtures/mock-server"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lantern_analysis", "lantern_decisions", "lantern_report", "lantern_registry", "lantern_api", "lantern_worker"]

@@ -1,0 +1,101 @@
+id: source
+version: v1
+applies_to: source
+description: >-
+  Questions about a source node: a point where a value enters the program from outside
+  (a request field, form field, header, cookie, file upload, or a read from a store).
+questions:
+  - id: data_category
+    kind: choice
+    description: >-
+      What category of personal data does this source introduce? Judge the value itself, not
+      the record it sits in. Choose the most specific category that applies. If the value
+      cannot relate to an identified or identifiable natural person, choose none. A field
+      name is a hint, not proof: a product's name or a product's condition is not personal
+      data.
+    options:
+      - id: identifier
+        description: >-
+          Values that single out a person or their device: a name, username, account or
+          customer id, device id, advertising id, IP address, or cookie id.
+      - id: contact
+        description: Email addresses, phone numbers, postal addresses, and messaging handles.
+      - id: financial
+        description: >-
+          Payment card data, bank account or routing numbers, payment method tokens, income,
+          and transaction history.
+      - id: health
+        description: >-
+          Physical or mental health conditions, diagnoses, medications, symptoms, disability,
+          and health insurance data.
+      - id: biometric
+        description: >-
+          Fingerprints, face geometry or embeddings, voiceprints, iris scans, or other
+          measurements used to recognize a person.
+      - id: precise_location
+        description: >-
+          Coordinates or any location accurate to within a radius of about 1,850 feet
+          (the CPRA definition of precise geolocation) or finer.
+      - id: coarse_location
+        description: City, region, country, postal code prefix, or IP-derived location.
+      - id: behavioral
+        description: >-
+          Browsing and click history, search queries, purchase or usage history, and
+          inferences or preferences derived from them.
+      - id: credentials
+        description: >-
+          Passwords, password hashes, security answers, and session or API tokens that grant
+          access to a person's account.
+      - id: government_id
+        description: >-
+          Social security numbers, passport numbers, driver's license numbers, national
+          identity numbers, and tax identification numbers.
+      - id: demographic
+        description: >-
+          Date of birth, age, gender, nationality, marital status. Racial or ethnic origin,
+          religion, and sexual orientation also belong here; set special_category_art9 to yes
+          for them.
+      - id: none
+        description: The value is not personal data.
+  - id: special_category_art9
+    kind: yes_no
+    description: >-
+      Does the value reveal a special category of personal data under GDPR Article 9(1):
+      racial or ethnic origin, political opinions, religious or philosophical beliefs, trade
+      union membership, genetic data, biometric data processed to uniquely identify a person,
+      data concerning health, or data concerning a person's sex life or sexual orientation?
+    options:
+      - id: "yes"
+        description: The value reveals at least one Article 9(1) category.
+      - id: "no"
+        description: The value reveals none of the Article 9(1) categories.
+  - id: relates_to_minor
+    kind: yes_no
+    description: >-
+      Is there evidence in the code that the value relates to a child? Evidence includes age
+      gating, parental consent flows, school or pediatric context, or fields such as
+      guardian_email or parent_phone. Answer no when there is no such evidence.
+    options:
+      - id: "yes"
+        description: The code shows the data subject may be a child.
+      - id: "no"
+        description: Nothing in the code indicates the data subject is a child.
+  - id: identifiability
+    kind: score
+    description: >-
+      How directly does this value identify a person, on its own or with data the
+      organization plausibly holds?
+    min: 1
+    max: 5
+    anchors:
+      1: Anonymous. Cannot be linked to a person even with other data.
+      2: >-
+        Aggregate or coarse. Linkable only in combination with substantial other data, for
+        example age in years or a city.
+      3: >-
+        Pseudonymous. An internal id or token that identifies a person to whoever holds the
+        mapping.
+      4: >-
+        Indirectly identifying. Identifies a person with modest effort, for example precise
+        location, a device id, or full date of birth plus postcode.
+      5: Directly identifying. A name, email address, phone number, or government id.

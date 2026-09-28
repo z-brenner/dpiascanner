@@ -1,0 +1,32 @@
+id: retention
+version: v1
+applies_to: retention
+description: >-
+  Questions about a retention point: a sink that persists data, such as an ORM write, file
+  write, object store put, or cache set.
+questions:
+  - id: has_expiry
+    kind: yes_no
+    description: >-
+      Is there evidence in the code or configuration that data written here expires or is
+      deleted: a TTL argument, an enforced expires_at column, a scheduled deletion job, a
+      storage lifecycle policy, or a retention setting?
+    options:
+      - id: "yes"
+        description: There is concrete evidence of expiry or deletion.
+      - id: "no"
+        description: There is no evidence of expiry or deletion.
+  - id: plausible_retention
+    kind: choice
+    description: Based on the evidence, how long is data written here plausibly kept?
+    options:
+      - id: session
+        description: Until the session or request ends.
+      - id: days
+        description: Up to about 30 days.
+      - id: months
+        description: Up to about a year.
+      - id: years
+        description: Longer than a year, but with an evident bound such as account closure.
+      - id: indefinite
+        description: No bound is evident.

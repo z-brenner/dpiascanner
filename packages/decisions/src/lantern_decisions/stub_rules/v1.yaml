@@ -1,0 +1,365 @@
+# Stub decision rules for question set v1. Deterministic and offline.
+#
+# These rules key on the evidence the analyzer attaches to each state (lexicon hints, rule
+# ids, registry entries, transform hints, retention evidence). They are tuned so the fixture
+# pipeline is exercised end to end; they are not a classifier. Rules are evaluated in order
+# and the first rule that answers a question wins.
+version: stub-rules-v1
+
+rules:
+  # ---------------------------------------------------------------- source
+  - name: health data
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: health}]
+    confidence: 0.93
+    answers:
+      data_category: health
+      special_category_art9: {answer: "yes", probability: 0.95}
+      identifiability: {answer: "4", probability: 0.8}
+
+  - name: biometric data
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: biometric}]
+    confidence: 0.9
+    answers:
+      data_category: biometric
+      special_category_art9: {answer: "yes", probability: 0.88}
+      identifiability: {answer: "5", probability: 0.85}
+
+  - name: special category demographics
+    applies_to: [source]
+    when: [{path: lexicon_hints.term, in: [race, ethnicity, religion, sexual_orientation, political_affiliation, union_membership]}]
+    confidence: 0.9
+    answers:
+      data_category: demographic
+      special_category_art9: {answer: "yes", probability: 0.92}
+      identifiability: {answer: "3", probability: 0.8}
+
+  - name: government identifiers
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: government_id}]
+    confidence: 0.95
+    answers:
+      data_category: government_id
+      identifiability: {answer: "5", probability: 0.92}
+
+  - name: contact details
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: contact}]
+    confidence: 0.94
+    answers:
+      data_category: contact
+      identifiability: {answer: "5", probability: 0.9}
+
+  - name: precise location
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: precise_location}]
+    confidence: 0.92
+    answers:
+      data_category: precise_location
+      identifiability: {answer: "4", probability: 0.86}
+
+  - name: financial data
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: financial}]
+    confidence: 0.9
+    answers:
+      data_category: financial
+      identifiability: {answer: "4", probability: 0.8}
+
+  - name: credentials
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: credentials}]
+    confidence: 0.9
+    answers:
+      data_category: credentials
+      identifiability: {answer: "3", probability: 0.8}
+
+  - name: personal names
+    applies_to: [source]
+    when:
+      - {path: lexicon_hints.category, equals: identifier}
+      - {path: lexicon_hints.term, in: [name, full_name, first_name, last_name, display_name, username]}
+    confidence: 0.9
+    answers:
+      data_category: identifier
+      identifiability: {answer: "5", probability: 0.88}
+
+  - name: other identifiers
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: identifier}]
+    confidence: 0.86
+    answers:
+      data_category: identifier
+      identifiability: {answer: "3", probability: 0.82}
+
+  - name: date of birth
+    applies_to: [source]
+    when: [{path: lexicon_hints.term, in: [dob, date_of_birth, birthdate, birth_date, birthday]}]
+    confidence: 0.92
+    answers:
+      data_category: demographic
+      identifiability: {answer: "4", probability: 0.8}
+
+  - name: other demographics
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: demographic}]
+    confidence: 0.86
+    answers:
+      data_category: demographic
+      identifiability: {answer: "2", probability: 0.78}
+
+  - name: behavioral data
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: behavioral}]
+    confidence: 0.84
+    answers:
+      data_category: behavioral
+      identifiability: {answer: "3", probability: 0.78}
+
+  - name: coarse location
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, equals: coarse_location}]
+    confidence: 0.84
+    answers:
+      data_category: coarse_location
+      identifiability: {answer: "2", probability: 0.8}
+
+  - name: child context
+    applies_to: [source]
+    when: [{path: snippet, matches: "(?i)\\b(child|minor|guardian|parental|coppa|under_?1[36]|pediatric)"}]
+    confidence: 0.7
+    answers:
+      relates_to_minor: "yes"
+
+  - name: not special, not a minor, when a category is known
+    applies_to: [source]
+    when: [{path: lexicon_hints.category, exists: true}]
+    confidence: 0.93
+    answers:
+      special_category_art9: "no"
+      relates_to_minor: "no"
+
+  # ---------------------------------------------------------------- edge
+  - name: reversible encoding
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: reversible_encoding}]
+    confidence: 0.93
+    answers:
+      transformation: reversible_encoding
+      residual_identifiability: {answer: "5", probability: 0.88}
+
+  - name: hashing
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: hash}]
+    confidence: 0.88
+    answers:
+      transformation: hashed
+      residual_identifiability: {answer: "3", probability: 0.78}
+
+  - name: encryption
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: encryption}]
+    confidence: 0.88
+    answers:
+      transformation: encrypted
+      residual_identifiability: {answer: "2", probability: 0.78}
+
+  - name: tokenization
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: tokenization}]
+    confidence: 0.86
+    answers:
+      transformation: tokenized
+      residual_identifiability: {answer: "3", probability: 0.78}
+
+  - name: aggregation
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: aggregation}]
+    confidence: 0.86
+    answers:
+      transformation: aggregated
+      residual_identifiability: {answer: "2", probability: 0.8}
+
+  - name: truncation
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: truncation}]
+    confidence: 0.85
+    answers:
+      transformation: truncated
+      residual_identifiability: {answer: "3", probability: 0.76}
+
+  - name: deletion
+    applies_to: [edge]
+    when: [{path: transforms.kind, equals: deletion}]
+    confidence: 0.9
+    answers:
+      transformation: dropped
+      residual_identifiability: {answer: "1", probability: 0.86}
+
+  - name: passthrough without transform evidence
+    applies_to: [edge]
+    when: [{path: transforms.kind, exists: false}]
+    confidence: 0.9
+    answers:
+      transformation: passthrough
+
+  - name: residual for direct identifiers
+    applies_to: [edge]
+    when: [{path: upstream.lexicon_categories, in: [contact, government_id, biometric]}]
+    confidence: 0.88
+    answers:
+      residual_identifiability: "5"
+
+  - name: residual for indirect identifiers
+    applies_to: [edge]
+    when: [{path: upstream.lexicon_categories, in: [precise_location, health, financial, identifier, demographic]}]
+    confidence: 0.84
+    answers:
+      residual_identifiability: "4"
+
+  - name: residual for weak identifiers
+    applies_to: [edge]
+    when: [{path: upstream.lexicon_categories, in: [behavioral, credentials, coarse_location]}]
+    confidence: 0.8
+    answers:
+      residual_identifiability: "3"
+
+  # ---------------------------------------------------------------- sink
+  - name: registry advertising sdk
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: ad_tech}]
+    confidence: 0.93
+    answers:
+      destination_class: ad_tech
+      sale_or_share_cpra: {answer: "yes", probability: 0.9}
+      purpose: marketing
+
+  - name: registry analytics sdk
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: analytics}]
+    confidence: 0.93
+    answers:
+      destination_class: analytics
+      purpose: analytics
+
+  - name: registry payment processor
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: payment_processor}]
+    confidence: 0.94
+    answers:
+      destination_class: payment_processor
+      purpose: service_delivery
+
+  - name: registry cloud provider
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: cloud_provider}]
+    confidence: 0.93
+    answers:
+      destination_class: cloud_provider
+      purpose: service_delivery
+
+  - name: registry error reporting and logging
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: log}]
+    confidence: 0.92
+    answers:
+      destination_class: log
+      purpose: security
+
+  - name: registry communications
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: communications}]
+    confidence: 0.9
+    answers:
+      destination_class: communications
+      purpose: service_delivery
+
+  - name: registry ai provider
+    applies_to: [sink]
+    when: [{path: registry.destination_class, equals: ai_model_provider}]
+    confidence: 0.92
+    answers:
+      destination_class: ai_model_provider
+      purpose: service_delivery
+
+  - name: registry vendor claims service provider status
+    applies_to: [sink]
+    when: [{path: registry.processor_claims.cpra_service_provider, equals: true}]
+    confidence: 0.86
+    answers:
+      sale_or_share_cpra: "no"
+
+  - name: application logger
+    applies_to: [sink]
+    when: [{path: rule_ids, matches: "\\.sink\\.log\\."}]
+    confidence: 0.95
+    answers:
+      destination_class: log
+      sale_or_share_cpra: {answer: "no", probability: 0.95}
+      purpose: {answer: security, probability: 0.8}
+
+  - name: first-party persistence
+    applies_to: [sink]
+    when: [{path: rule_ids, matches: "\\.sink\\.(orm|db|file|cache)\\."}]
+    confidence: 0.95
+    answers:
+      destination_class: first_party_store
+      sale_or_share_cpra: {answer: "no", probability: 0.96}
+      purpose: {answer: service_delivery, probability: 0.85}
+
+  - name: queue
+    applies_to: [sink]
+    when: [{path: rule_ids, matches: "\\.sink\\.queue\\."}]
+    confidence: 0.9
+    answers:
+      destination_class: queue
+      sale_or_share_cpra: {answer: "no", probability: 0.9}
+      purpose: service_delivery
+
+  - name: unregistered http destination
+    applies_to: [sink]
+    when: [{path: rule_ids, matches: "\\.sink\\.http\\."}]
+    unless: [{path: registry.destination_class, exists: true}]
+    confidence: 0.86
+    answers:
+      destination_class: unknown_third_party
+      # Without a contract in evidence, service-provider status cannot be established.
+      sale_or_share_cpra: {answer: "yes", probability: 0.62}
+      purpose: {answer: unknown, probability: 0.7}
+
+  # ---------------------------------------------------------------- retention
+  - name: retention evidence present
+    applies_to: [retention]
+    when: [{path: retention_evidence, exists: true}]
+    confidence: 0.88
+    answers:
+      has_expiry: "yes"
+      plausible_retention: {answer: months, probability: 0.8}
+
+  - name: no retention evidence
+    applies_to: [retention]
+    when: [{path: retention_evidence, exists: false}]
+    confidence: 0.9
+    answers:
+      has_expiry: "no"
+      plausible_retention: {answer: indefinite, probability: 0.84}
+
+defaults:
+  source:
+    data_category: {answer: none, probability: 0.5}
+    special_category_art9: {answer: "no", probability: 0.7}
+    relates_to_minor: {answer: "no", probability: 0.85}
+    identifiability: {answer: "3", probability: 0.4}
+  edge:
+    transformation: {answer: passthrough, probability: 0.6}
+    residual_identifiability: {answer: "3", probability: 0.45}
+  sink:
+    destination_class: {answer: unknown_third_party, probability: 0.45}
+    sale_or_share_cpra: {answer: "no", probability: 0.55}
+    purpose: {answer: unknown, probability: 0.6}
+  retention:
+    has_expiry: {answer: "no", probability: 0.6}
+    plausible_retention: {answer: indefinite, probability: 0.5}
+
+lookup: {}

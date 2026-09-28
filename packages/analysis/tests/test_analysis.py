@@ -325,3 +325,65 @@ def test_host_of() -> None:
     assert host_of("http://localhost:8080/x") == "localhost"
     assert host_of("postgresql://u:p@db.internal:5432/app") is None
     assert host_of("not a url") is None
+
+
+def _routes(graph: DataFlowGraph) -> set[tuple[str, str]]:
+    return {
+        (e["method"], e["path"])
+        for e in graph.summary["entry_points_detail"]
+        if e["kind"] == "route"
+    }
+
+
+def test_python_routes_carry_router_prefixes(canary_python: DataFlowGraph) -> None:
+    assert _routes(canary_python) == {
+        ("GET", "/healthz"),
+        ("POST", "/health/intake"),
+        ("POST", "/identity/verify"),
+        ("POST", "/location/forecast"),
+        ("POST", "/partners/sync"),
+        ("POST", "/referrals"),
+        ("POST", "/users"),
+        ("POST", "/users/{user_id}/export"),
+    }
+
+
+def test_nested_router_and_blueprint_prefixes(tmp_path: Path) -> None:
+    from lantern_analysis.analyze import analyze_repo
+
+    (tmp_path / "app" / "api" / "routes").mkdir(parents=True)
+    (tmp_path / "app" / "__init__.py").write_text("")
+    (tmp_path / "app" / "api" / "__init__.py").write_text("")
+    (tmp_path / "app" / "api" / "routes" / "__init__.py").write_text("")
+    (tmp_path / "app" / "api" / "routes" / "users.py").write_text(
+        "from fastapi import APIRouter\n\n"
+        'router = APIRouter(tags=["users"])\n\n\n'
+        '@router.get("/me")\n'
+        "def read_me():\n    return {}\n"
+    )
+    (tmp_path / "app" / "api" / "main.py").write_text(
+        "from fastapi import APIRouter\n\nfrom app.api.routes import users\n\n"
+        "api_router = APIRouter()\n"
+        'api_router.include_router(users.router, prefix="/users")\n'
+    )
+    (tmp_path / "app" / "main.py").write_text(
+        "from fastapi import FastAPI\n\nfrom app.api.main import api_router\n\n"
+        "app = FastAPI()\n"
+        'app.include_router(api_router, prefix="/api/v1")\n'
+    )
+    (tmp_path / "app" / "admin.py").write_text(
+        "from flask import Blueprint, Flask\n\n"
+        'bp = Blueprint("admin", __name__, url_prefix="/admin")\n\n\n'
+        '@bp.route("/stats")\n'
+        "def stats():\n    return {}\n\n\n"
+        '@bp.route("/reset", methods=["POST"])\n'
+        "def reset():\n    return {}\n\n\n"
+        "web = Flask(__name__)\n"
+        'web.register_blueprint(bp, url_prefix="/internal")\n'
+    )
+    graph = analyze_repo(tmp_path, "x")
+    routes = _routes(graph)
+    assert ("GET", "/api/v1/users/me") in routes
+    # register_blueprint's url_prefix replaces the blueprint's own.
+    assert ("GET", "/internal/stats") in routes
+    assert ("POST", "/internal/reset") in routes

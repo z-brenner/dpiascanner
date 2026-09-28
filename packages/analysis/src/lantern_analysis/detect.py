@@ -23,7 +23,7 @@ from lantern_analysis.ir import (
 )
 from lantern_analysis.lexicon import Lexicon, LexiconHint, tokenize
 from lantern_analysis.model import Span
-from lantern_analysis.project import ClassT, ExtT, Project
+from lantern_analysis.project import ClassT, ExtT, Global, Project
 from lantern_analysis.rules import RuleMatch
 from lantern_registry import Registry, RegistryEntry
 from lantern_registry.resolver import DependencyProfile
@@ -43,6 +43,8 @@ HTTP_METHODS = frozenset(
         "all",
     }
 )
+# Constructors whose ``prefix`` or ``url_prefix`` keyword prefixes every route on the object.
+ROUTER_FACTORIES = frozenset({"APIRouter", "Blueprint"})
 PY_HANDLER_DECORATORS = frozenset(
     {
         "exception_handler",
@@ -264,8 +266,57 @@ class Detector:
 
     # ------------------------------------------------------------------ entry points
 
+    def _router_mounts(self) -> dict[Global, tuple[str, Global | None]]:
+        """Router or blueprint -> (prefix it is mounted under, the router it is mounted on).
+
+        Covers ``app.include_router(users.router, prefix="/users")`` and Flask's
+        ``app.register_blueprint(bp, url_prefix="/x")``, including nested routers.
+        """
+        mounts: dict[Global, tuple[str, Global | None]] = {}
+        for fn in self.project.functions.values():
+            for stmt in fn.body:
+                for root in stmt_exprs(stmt):
+                    for e in walk_expr(root):
+                        if not (isinstance(e, Call) and isinstance(e.func, Attr) and e.args):
+                            continue
+                        if e.func.attr not in ("include_router", "register_blueprint"):
+                            continue
+                        child = self.project.expr_symbol(fn, e.args[0])
+                        parent = self.project.expr_symbol(fn, e.func.base)
+                        if isinstance(child, Global):
+                            prefix = _kwarg_string(e, "prefix", "url_prefix") or ""
+                            mounts.setdefault(
+                                child, (prefix, parent if isinstance(parent, Global) else None)
+                            )
+        return mounts
+
+    def _own_prefix(self, sym: Global) -> tuple[str, str]:
+        """(prefix, factory) for a router or blueprint object."""
+        for value in self.project.values_of(sym):
+            factory = value.func.text.split(".")[-1] if isinstance(value, Call) else ""
+            if isinstance(value, Call) and factory in ROUTER_FACTORIES:
+                return _kwarg_string(value, "prefix", "url_prefix") or "", factory
+        return "", ""
+
+    def _route_prefix(self, fn: Function, router: Expr) -> str:
+        start = self.project.expr_symbol(fn, router)
+        sym: Global | None = start if isinstance(start, Global) else None
+        prefix = ""
+        seen: set[Global] = set()
+        while sym is not None and sym not in seen:
+            seen.add(sym)
+            mount, parent = self._mounts.get(sym, ("", None))
+            own, factory = self._own_prefix(sym)
+            # FastAPI concatenates include_router's prefix with the router's own; Flask's
+            # register_blueprint(url_prefix=...) replaces the blueprint's url_prefix.
+            segment = mount if factory == "Blueprint" and mount else mount + own
+            prefix = segment + prefix
+            sym = parent
+        return prefix
+
     def _entrypoints(self) -> None:
         project = self.project
+        self._mounts = self._router_mounts()
         for fn in project.functions.values():
             if fn.kind == "module":
                 self.d.entries.setdefault(fn.fid, EntryPoint(fn.fid, "module"))
@@ -283,7 +334,12 @@ class Detector:
                 )
                 if name in HTTP_METHODS and isinstance(func, Attr):
                     path = _first_string(call.args) if call is not None else None
-                    self.d.entries[fn.fid] = EntryPoint(fn.fid, "route", name.upper(), path)
+                    method = name.upper()
+                    if project.modules[fn.module].language == "python":
+                        path = (self._route_prefix(fn, func.base) + (path or "")) or path
+                        if name in ("route", "api_route"):
+                            method = _methods_kwarg(call) or "GET"
+                    self.d.entries[fn.fid] = EntryPoint(fn.fid, "route", method, path)
                 elif name in ("exception_handler", "errorhandler"):
                     catches = []
                     if call is not None and call.args:
@@ -654,6 +710,23 @@ def parse_prisma_schema(text: str) -> dict[str, list[str]]:
             columns.append(parts[0])
         models[name] = columns
     return models
+
+
+def _methods_kwarg(call: Call | None) -> str | None:
+    """The first method in ``methods=[...]`` on a Flask or FastAPI ``route`` decorator."""
+    for key, value in call.kwargs if call is not None else []:
+        if key == "methods" and isinstance(value, Container):
+            for _, item in value.items:
+                if isinstance(item, Literal) and isinstance(item.value, str):
+                    return item.value.upper()
+    return None
+
+
+def _kwarg_string(call: Call, *names: str) -> str | None:
+    for key, value in call.kwargs:
+        if key in names and isinstance(value, Literal) and isinstance(value.value, str):
+            return value.value
+    return None
 
 
 def _first_string(args: list[Expr]) -> str | None:

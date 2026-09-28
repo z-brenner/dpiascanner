@@ -1,0 +1,105 @@
+# Personal-data lexicon. Matches are hints that create candidate source nodes; a lexicon
+# match is never by itself a finding.
+#
+# Identifiers are split into lowercase tokens (camelCase, snake_case, kebab-case, digits),
+# so "refereeEmail", "referee_email" and "REFEREE-EMAIL" all become [referee, email].
+# A term matches when its tokens appear as a contiguous run in the identifier's tokens.
+#
+# strength:
+#   strong  the term alone is enough to create a candidate source.
+#   weak    the term also needs a context token from its category's context list, found in
+#           the owning class, function, route, or file name. "name" on a Product is not
+#           personal; "condition" on a HealthRecord is.
+version: lexicon-v1
+
+exclude_tokens:
+  # Tokens that turn a personal-data word into metadata about it: email_verified,
+  # phone_type, name_length, ip_rate_limit, address_count.
+  [verified, verification, enabled, disabled, count, counts, template, templates, subject, type, types,
+   status, sent, format, provider, providers, length, len, regex, pattern, valid, validator, required,
+   field, fields, column, columns, label, placeholder, rate, limit, limits, key, keys, hash_algo,
+   max, min, cache, ttl, version, schema, prefix, suffix, url, uri, path, file, filename, domain,
+   header, headers, mode, config, setting, settings, flag, flags, enum, lookup, index, idx]
+
+context:
+  person: [user, users, customer, customers, person, people, patient, patients, member, members, employee,
+           employees, contact, contacts, account, accounts, profile, profiles, client, clients, applicant,
+           applicants, student, students, guest, guests, subscriber, subscribers, owner, owners, author,
+           authors, recipient, recipients, sender, senders, referee, referrer, signup, billing, buyer,
+           seller, tenant, driver, rider, passenger, candidate, lead, leads, attendee, visitor, identity,
+           kyc, onboarding, registration, auth, login, me, self]
+  health: [health, medical, patient, patients, clinical, clinic, intake, diagnosis, symptom, symptoms,
+           care, treatment, therapy, prescription, pharmacy, hospital, doctor, physician, nurse, triage,
+           wellness, condition, conditions, ehr, emr, fhir, hl7]
+  location: [location, locations, geo, gps, device, mobile, position, tracking, checkin, nearby, map,
+             ride, trip, delivery, forecast]
+  financial: [billing, payment, payments, checkout, invoice, invoices, payout, bank, wallet, card, cards,
+              subscription, charge, refund]
+
+categories:
+  identifier:
+    strong: [full_name, first_name, last_name, given_name, family_name, surname, middle_name, display_name,
+             legal_name, username, user_name, screen_name, nickname, ip, ip_address, ip_addr, remote_addr,
+             client_ip, x_forwarded_for, x_real_ip, device_id, device_identifier, advertising_id, idfa, gaid,
+             android_id, imei, mac_address, cookie_id, anonymous_id, fingerprint_id, customer_name, user_agent]
+    weak: [name]
+    weak_context: person
+  internal_identifier:
+    # Pseudonymous linkage keys. Not tracked as sources unless track_internal_ids is set:
+    # the DPIA covers the records they link to through the other personal fields.
+    strong: [user_id, userid, account_id, customer_id, member_id, patient_id, profile_id, person_id,
+             subscriber_id, referrer_id, referred_by, external_id]
+  contact:
+    strong: [email, e_mail, email_address, emails, phone, phone_number, phonenumber, mobile_number, cell_phone,
+             telephone, tel, msisdn, fax, street, street_address, postal_address, mailing_address,
+             home_address, billing_address, shipping_address, address_line, address_line1, address_line2,
+             postcode, postal_code, zip_code, zipcode, whatsapp, telegram_handle]
+    weak: [address, mobile, contact]
+    weak_context: person
+  financial:
+    strong: [card_number, cardnumber, credit_card, debit_card, pan, cvv, cvc, card_cvv, expiry_date, iban, bic,
+             swift_code, account_number, bank_account, routing_number, sort_code, payment_method,
+             payment_method_id, payment_token, card_token, salary, income, net_worth, tax_return, credit_score]
+    weak: [card, amount_owed, balance]
+    weak_context: financial
+  health:
+    strong: [diagnosis, diagnoses, medical_condition, health_condition, medication, medications, prescription,
+             symptom, symptoms, allergy, allergies, blood_type, blood_pressure, heart_rate, disability,
+             pregnancy, pregnant, icd10, icd_10, mental_health, treatment_plan, lab_result, vaccination,
+             insurance_member_id, medical_record_number, mrn, health_data, medical_history]
+    weak: [condition, conditions, treatment, notes, weight, height, bmi]
+    weak_context: health
+  biometric:
+    strong: [face_embedding, face_template, faceprint, voiceprint, voice_print, fingerprint_template, iris_scan,
+             retina_scan, palm_print, biometric, biometrics, face_id, facial_geometry]
+    weak: [fingerprint, face]
+    weak_context: person
+  precise_location:
+    strong: [latitude, longitude, lat, lng, lon, long_coord, coordinates, coords, geo_point, geopoint, gps,
+             gps_location, geolocation, lat_lng, latlng, lat_long, precise_location, current_location]
+    weak: [location, position, geo]
+    weak_context: location
+  coarse_location:
+    strong: [home_city, user_country, country_of_residence, residence_country]
+    weak: [city, country, region, state, province, timezone, time_zone, locale]
+    weak_context: person
+  behavioral:
+    strong: [browsing_history, search_history, search_query, purchase_history, order_history, page_views,
+             clickstream, watch_history, listening_history, viewed_products, interests, preferences_profile]
+    weak: [history, preferences, interests, activity]
+    weak_context: person
+  credentials:
+    strong: [password, passwd, password_hash, hashed_password, security_answer, security_question,
+             otp, totp_secret, recovery_code, session_token, refresh_token, access_token, id_token, pin_code]
+    weak: [pin, token, secret]
+    weak_context: person
+  government_id:
+    strong: [ssn, social_security, social_security_number, sin, national_id, national_insurance_number, nino,
+             passport, passport_number, drivers_license, driver_license, drivers_licence, license_number,
+             tax_id, tin, itin, ein_personal, voter_id, aadhaar, cpf, nif, nie, bsn, personnummer]
+  demographic:
+    strong: [dob, date_of_birth, birthdate, birth_date, birthday, gender, sex, race, ethnicity, religion,
+             sexual_orientation, marital_status, nationality, citizenship, political_affiliation,
+             union_membership, age_years]
+    weak: [age]
+    weak_context: person

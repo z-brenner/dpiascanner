@@ -1,0 +1,129 @@
+rules:
+  - id: ts.sink.log.console
+    languages: [typescript]
+    severity: INFO
+    message: "sink=log"
+    metadata: {kind: sink, family: log}
+    patterns:
+      - pattern: console.$M(...)
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(log|info|warn|error|debug|trace)$
+
+  - id: ts.sink.log.logger
+    languages: [typescript]
+    severity: INFO
+    message: "sink=log"
+    metadata: {kind: sink, family: log}
+    patterns:
+      - pattern: $L.$LEVEL(...)
+      - metavariable-regex:
+          metavariable: $L
+          regex: (?i)^(this\.)?_?(log|logger|pino|winston|audit|auditlog|auditlogger)$
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal|log|verbose|silly)$
+
+  - id: ts.sink.http.fetch
+    languages: [typescript]
+    severity: INFO
+    message: "sink=http"
+    metadata: {kind: sink, family: http}
+    pattern-either:
+      - pattern: fetch(...)
+      - pattern: axios(...)
+      - pattern: got(...)
+      - pattern: ky(...)
+      - patterns:
+          - pattern-either:
+              - pattern: axios.$M(...)
+              - pattern: got.$M(...)
+              - pattern: ky.$M(...)
+              - pattern: superagent.$M(...)
+              - pattern: http.request(...)
+              - pattern: https.request(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(get|post|put|patch|delete|head|request|options)$
+
+  - id: ts.sink.orm.prisma-write
+    languages: [typescript]
+    severity: INFO
+    message: "sink=orm model=$MODEL"
+    metadata: {kind: sink, family: orm, persists: true, returns_input: true}
+    patterns:
+      - pattern: $DB.$MODEL.$OP(...)
+      - metavariable-regex:
+          metavariable: $DB
+          regex: (?i)^(.*\.)?(prisma|db|tx|client|database|_db|_prisma)$
+      - metavariable-regex:
+          metavariable: $OP
+          regex: ^(create|createMany|createManyAndReturn|update|updateMany|upsert)$
+
+  - id: ts.sink.orm.generic-write
+    languages: [typescript]
+    severity: INFO
+    message: "sink=orm"
+    metadata: {kind: sink, family: orm, persists: true}
+    patterns:
+      - pattern-either:
+          - pattern: $REPO.save(...)
+          - pattern: $REPO.insert(...)
+      - metavariable-regex:
+          metavariable: $REPO
+          regex: (?i)(repo|repository|Repository|manager|em|entityManager)$
+
+  - id: ts.sink.orm.query-builder-write
+    languages: [typescript]
+    severity: INFO
+    message: "sink=orm"
+    metadata: {kind: sink, family: orm, persists: true}
+    pattern-either:
+      - pattern: $KNEX($T).insert(...)
+      - pattern: $DB.insert($T).values(...)
+      - pattern: new $MODEL(...).save()
+
+  - id: ts.sink.file.write
+    languages: [typescript]
+    severity: INFO
+    message: "sink=file"
+    metadata: {kind: sink, family: file, persists: true}
+    pattern-either:
+      - pattern: fs.writeFile(...)
+      - pattern: fs.writeFileSync(...)
+      - pattern: fs.appendFile(...)
+      - pattern: fs.appendFileSync(...)
+      - pattern: fs.promises.writeFile(...)
+      - pattern: fs.promises.appendFile(...)
+      - pattern: writeFile(...)
+      - pattern: appendFile(...)
+      - pattern: writeFileSync(...)
+      - pattern: fs.createWriteStream(...).write(...)
+
+  - id: ts.sink.cache.redis
+    languages: [typescript]
+    severity: INFO
+    message: "sink=cache"
+    metadata: {kind: sink, family: cache, persists: true}
+    patterns:
+      - pattern: $R.$M(...)
+      - metavariable-regex:
+          metavariable: $R
+          regex: (?i)^(.*\.)?(redis|redisClient|cache|client\.redis|kv)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(set|setEx|setex|hSet|hset|hmset|lPush|lpush|rPush|rpush|sAdd|sadd|zAdd|zadd|xAdd|xadd|mSet|mset)$
+
+  - id: ts.sink.queue.publish
+    languages: [typescript]
+    severity: INFO
+    message: "sink=queue"
+    metadata: {kind: sink, family: queue}
+    patterns:
+      - pattern: $P.$M(...)
+      - metavariable-regex:
+          metavariable: $P
+          regex: (?i)^(.*\.)?(producer|publisher|queue|channel|bus|eventBus|topic)$
+      - metavariable-regex:
+          metavariable: $M
+          regex: ^(send|produce|publish|add|sendToQueue|publishMessage|emit)$

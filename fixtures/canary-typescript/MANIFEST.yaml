@@ -81,7 +81,7 @@ flows:
     sources:
       - {file: src/routes/users.ts, line: 21, snippet: "= req.body", field: dateOfBirth, expected_data_category: demographic}
     sink: {file: src/routes/users.ts, line: 29, snippet: "prisma.signupMetric.create(", expected_sink_class: first_party_store}
-    transform: {file: src/routes/users.ts, line: 28, snippet: "const age = ageOn("}
+    transform: {file: src/routes/users.ts, line: 17, snippet: "today.getFullYear() - dob.getFullYear()"}
     expected_transformation: aggregated
     dropped_fields: [dateOfBirth]
     reachable: true

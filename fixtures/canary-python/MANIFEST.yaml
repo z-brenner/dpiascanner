@@ -85,7 +85,7 @@ flows:
     sources:
       - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: date_of_birth, expected_data_category: demographic}
     sink: {file: app/routes/users.py, line: 40, snippet: "session.add(metric)", expected_sink_class: first_party_store}
-    transform: {file: app/routes/users.py, line: 36, snippet: "age = _age_on("}
+    transform: {file: app/routes/users.py, line: 22, snippet: "today.year - dob.year"}
     expected_transformation: aggregated
     dropped_fields: [date_of_birth]
     reachable: true

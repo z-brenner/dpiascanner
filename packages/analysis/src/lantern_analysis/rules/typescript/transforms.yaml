@@ -1,0 +1,71 @@
+rules:
+  - id: ts.transform.hash
+    languages: [typescript]
+    severity: INFO
+    message: "transform=hash"
+    metadata: {kind: transform, family: hash}
+    pattern-either:
+      - pattern: crypto.createHash(...).update(...).digest(...)
+      - pattern: createHash(...).update(...).digest(...)
+      - pattern: crypto.createHmac(...).update(...).digest(...)
+      - pattern: createHmac(...).update(...).digest(...)
+      - pattern: bcrypt.hash(...)
+      - pattern: bcrypt.hashSync(...)
+      - pattern: argon2.hash(...)
+      - pattern: crypto.subtle.digest(...)
+
+  - id: ts.transform.encryption
+    languages: [typescript]
+    severity: INFO
+    message: "transform=encryption"
+    metadata: {kind: transform, family: encryption}
+    pattern-either:
+      - pattern: crypto.createCipheriv(...)
+      - pattern: createCipheriv(...)
+      - pattern: crypto.publicEncrypt(...)
+      - pattern: crypto.subtle.encrypt(...)
+      - pattern: $K.encrypt(...)
+
+  - id: ts.transform.reversible-encoding
+    languages: [typescript]
+    severity: INFO
+    message: "transform=reversible_encoding"
+    metadata: {kind: transform, family: reversible_encoding}
+    pattern-either:
+      - pattern: Buffer.from(...).toString("base64")
+      - pattern: Buffer.from(...).toString("base64url")
+      - pattern: Buffer.from(...).toString("hex")
+      - pattern: btoa(...)
+      - pattern: encodeURIComponent(...)
+      - pattern: encodeURI(...)
+      - pattern: escape(...)
+      - pattern: zlib.gzipSync(...)
+      - pattern: zlib.deflateSync(...)
+
+  - id: ts.transform.truncation
+    languages: [typescript]
+    severity: INFO
+    message: "transform=truncation"
+    metadata: {kind: transform, family: truncation}
+    pattern-either:
+      - pattern: $X.slice(...)
+      - pattern: $X.substring(...)
+      - pattern: $X.substr(...)
+      - pattern: $X.toFixed(...)
+      - pattern: Math.round(...)
+      - pattern: Math.floor(...)
+      - pattern: Math.trunc(...)
+
+  - id: ts.transform.aggregation
+    languages: [typescript]
+    severity: INFO
+    message: "transform=aggregation"
+    metadata: {kind: transform, family: aggregation}
+    pattern-either:
+      - pattern: $A.getFullYear() - $B.getFullYear()
+      - pattern: $A.getUTCFullYear() - $B.getUTCFullYear()
+      - pattern: differenceInYears(...)
+      - pattern: $XS.length
+      - pattern: $XS.reduce(...)
+      - pattern: _.sumBy(...)
+      - pattern: _.meanBy(...)

@@ -5,3 +5,8 @@ dynamic:
   endpoints:
     FX_API_URL: https://api.fx-rates.example/v1/latest
     SENTRY_DSN: https://publickey@o0.ingest.sentry.io/0
+
+# Static analysis scope. The exercise script is a test harness that drives the app with
+# synthetic values; it is not application code.
+analysis:
+  exclude: ["scripts/exercise.*"]

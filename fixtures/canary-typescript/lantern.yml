@@ -16,3 +16,8 @@ dynamic:
     WEATHER_API_URL: https://api.open-weather-data.example/v1/forecast
     PARTNER_API_URL: https://hooks.partner-crm.example/v2/contacts
     S3_ENDPOINT_URL: https://s3.eu-west-1.amazonaws.com
+
+# Static analysis scope. The exercise script is a test harness that drives the app with
+# synthetic values; it is not application code.
+analysis:
+  exclude: ["scripts/exercise.*"]

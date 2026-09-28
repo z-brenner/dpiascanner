@@ -1,0 +1,165 @@
+# Lantern third-party SDK registry.
+#
+# Entries are evidence, not verdicts. The analyzer uses them to create sink nodes with known
+# semantics and to detect mitigation hooks; the decision layer still classifies what the
+# caller actually passed. Vendor claims are recorded as claims, with a link to the terms.
+version: "2026.09"
+schema_version: 1
+entries:
+  - id: sentry
+    vendor: Functional Software, Inc. (Sentry)
+    packages:
+      pypi: [sentry-sdk]
+      npm: ["@sentry/*"]
+    imports:
+      python: [sentry_sdk]
+      typescript: ["@sentry/*"]
+    destination_class: log
+    sink_calls: [capture_exception, capture_message, capture_event, set_user, set_context, set_extra, set_tag, add_breadcrumb,
+                 captureException, captureMessage, captureEvent, setUser, setContext, setExtra, setTag, addBreadcrumb]
+    setup_calls: [init, flush, close]
+    event_paths:
+      set_user: user
+      setUser: user
+      capture_exception: exception
+      captureException: exception
+      capture_message: message
+      captureMessage: message
+      set_context: contexts
+      setContext: contexts
+      set_extra: extra
+      setExtra: extra
+      set_tag: tags
+      setTag: tags
+      add_breadcrumb: breadcrumbs
+      addBreadcrumb: breadcrumbs
+    captures_unhandled_exceptions: true
+    auto_collected:
+      - Exception type, message, and stack trace for captured and unhandled errors.
+      - "Stack-frame local variables (Python include_local_variables defaults to true). Observed in Lantern fixtures with sentry-sdk 2.71: the full request model, including email and date of birth, was sent with send_default_pii=False."
+      - "HTTP request data for framework integrations: URL, method, headers with a default denylist, and request body (Python max_request_body_size defaults to medium). Observed: the JSON request body was sent with send_default_pii=False."
+      - Breadcrumbs from logging calls and outgoing HTTP requests.
+      - With send_default_pii or sendDefaultPii enabled, user IP address, cookies, and user identity from the framework's auth layer.
+    endpoints:
+      - {host: "*.ingest.sentry.io", region: US}
+      - {host: "*.ingest.us.sentry.io", region: US}
+      - {host: "*.ingest.de.sentry.io", region: "EU (Germany)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Sentry's DPA describes Sentry as processor and service provider for customer data.
+    dpa_url: https://sentry.io/legal/dpa/
+    mitigation_hooks:
+      - {name: before_send, kind: event_scrubber, languages: [python], config_call: init, argument: before_send,
+         description: Callback that can edit or drop each event before it is sent.}
+      - {name: beforeSend, kind: event_scrubber, languages: [typescript], config_call: init, argument: beforeSend,
+         description: Callback that can edit or drop each event before it is sent.}
+      - {name: send_default_pii, kind: flag, languages: [python], config_call: init, argument: send_default_pii,
+         description: When false, the SDK omits IP, cookies and auth user data. It does not stop request bodies or local variables.}
+      - {name: sendDefaultPii, kind: flag, languages: [typescript], config_call: init, argument: sendDefaultPii,
+         description: When false, the SDK omits IP and cookies. It does not stop request data or error messages.}
+      - {name: include_local_variables, kind: flag, languages: [python], config_call: init, argument: include_local_variables,
+         description: Set to false to stop sending stack-frame locals.}
+    last_reviewed: 2026-09-28
+    references:
+      - https://docs.sentry.io/platforms/python/data-management/data-collected/
+      - https://docs.sentry.io/platforms/javascript/guides/node/data-management/data-collected/
+
+  - id: mixpanel
+    vendor: Mixpanel, Inc.
+    packages:
+      pypi: [mixpanel]
+      npm: [mixpanel, mixpanel-browser]
+    imports:
+      python: [mixpanel]
+      typescript: [mixpanel, mixpanel-browser]
+    destination_class: analytics
+    sink_calls: [track, import_data, alias, merge, people_set, people_set_once, people_append, people_union, people_increment, group_set,
+                 identify, register, people.set, people.set_once, set, set_once]
+    setup_calls: [init, Consumer, BufferedConsumer, flush]
+    auto_collected:
+      - Server libraries send only the properties passed, plus library metadata and time.
+      - mixpanel-browser collects device, browser, OS, screen size, current URL, referrer and UTM parameters, and derives geolocation from the client IP.
+    endpoints:
+      - {host: api.mixpanel.com, region: US}
+      - {host: api-eu.mixpanel.com, region: EU}
+      - {host: api-in.mixpanel.com, region: India}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Mixpanel's DPA describes Mixpanel as processor and service provider.
+    dpa_url: https://mixpanel.com/legal/dpa/
+    mitigation_hooks:
+      - {name: opt_out_tracking, kind: config, languages: [typescript], description: mixpanel-browser opt-out switch.}
+      - {name: ip, kind: flag, languages: [python, typescript], description: "Set ip: 0 on server events to stop IP-based geolocation."}
+    last_reviewed: 2026-09-28
+
+  - id: stripe
+    vendor: Stripe, Inc.
+    packages:
+      pypi: [stripe]
+      npm: [stripe, "@stripe/stripe-js", "@stripe/react-stripe-js"]
+    imports:
+      python: [stripe]
+      typescript: [stripe, "@stripe/stripe-js", "@stripe/react-stripe-js"]
+    destination_class: payment_processor
+    sink_calls: ["*"]
+    setup_calls: [Stripe, StripeClient, loadStripe, set_app_info, setAppInfo]
+    auto_collected:
+      - Server SDKs send only the parameters passed, plus request telemetry (request ids and latency; enable_telemetry defaults to true).
+      - Stripe.js collects device and browser signals for fraud prevention.
+    endpoints:
+      - {host: api.stripe.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Stripe acts as processor for payment processing and as an independent controller for fraud prevention, loss prevention and regulatory compliance. Confirm the role for each Stripe product in use.
+    dpa_url: https://stripe.com/legal/dpa
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+
+  - id: aws-python
+    vendor: Amazon Web Services, Inc.
+    packages:
+      pypi: [boto3, botocore, aiobotocore, aioboto3]
+      npm: []
+    imports:
+      python: [boto3, botocore, aiobotocore, aioboto3]
+      typescript: []
+    destination_class: cloud_provider
+    sink_calls: ["*"]
+    setup_calls: [client, resource, Session, session, Config, get_paginator, get_waiter, generate_presigned_url]
+    auto_collected:
+      - Request metadata such as user agent and account identifiers. Payloads contain only what the caller passes.
+    endpoints:
+      - {host: "*.amazonaws.com", region: "Set by client configuration (region_name, AWS_REGION, AWS_DEFAULT_REGION)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: The AWS Data Processing Addendum applies to customer content. Region is chosen by the customer.
+    dpa_url: https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+
+  - id: aws-js
+    vendor: Amazon Web Services, Inc.
+    packages:
+      pypi: []
+      npm: ["@aws-sdk/*", aws-sdk]
+    imports:
+      python: []
+      typescript: ["@aws-sdk/*", aws-sdk]
+    destination_class: cloud_provider
+    sink_calls: [send, upload, putObject, putItem, sendMessage, publish, "*"]
+    setup_calls: [destroy, middlewareStack, config]
+    auto_collected:
+      - Request metadata such as user agent. Payloads contain only what the caller passes.
+    endpoints:
+      - {host: "*.amazonaws.com", region: "Set by client configuration (region, AWS_REGION)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: The AWS Data Processing Addendum applies to customer content. Region is chosen by the customer.
+    dpa_url: https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28

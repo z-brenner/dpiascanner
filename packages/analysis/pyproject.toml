@@ -3,7 +3,9 @@ name = "lantern-analysis"
 version = "0.1.0"
 description = "Parsing, rule matching, taint tracking and data-flow graph construction."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "pyyaml>=6.0",
+]
 
 [build-system]
 requires = ["hatchling>=1.25"]

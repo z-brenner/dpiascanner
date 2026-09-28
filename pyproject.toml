@@ -17,6 +17,7 @@ dev = [
     "mypy>=1.11",
     "pytest>=8.3",
     "ruff>=0.6",
+    "types-pyyaml>=6.0",
 ]
 
 [tool.uv]
@@ -61,4 +62,5 @@ exclude = ["^fixtures/", "^apps/web/", "/tests/"]
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib -ra"
-testpaths = ["packages", "apps/api", "apps/worker"]
+testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server"]
+pythonpath = ["fixtures/mock-server"]

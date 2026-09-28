@@ -1,0 +1,6 @@
+{
+  "s3": {
+    "bucket": "canary-user-exports",
+    "region": "eu-west-1"
+  }
+}

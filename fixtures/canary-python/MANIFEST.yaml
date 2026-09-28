@@ -1,0 +1,203 @@
+# Planted personal-data flows in this fixture. Consumed by Lantern's tests and benchmark.
+# Never shown to the analyzer or to the LLM baseline.
+#
+# Location conventions (see fixtures/README.md):
+#   source.line  Python: the entry-point parameter declaration that receives the value
+#                (FastAPI body model, Form or query parameter), or the ORM read call.
+#   sink.line    the line of the call that hands data to the destination.
+#   snippet      text that must appear on that line; the manifest test enforces it.
+#
+# expected_findings lists finding categories that must be attached to the flow.
+# forbidden_findings lists categories that must not be.
+schema_version: 1
+fixture: canary-python
+language: python
+flows:
+  - id: C01
+    description: User email from a request body written to the users table.
+    sources:
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: email, expected_data_category: contact}
+    sink: {file: app/routes/users.py, line: 33, snippet: "session.add(user)", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [indefinite_retention]
+    forbidden_findings: [personal_data_to_third_party, unresolved_flow]
+
+  - id: C02
+    description: User email passed to a Mixpanel track call.
+    sources:
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: email, expected_data_category: contact}
+    sink: {file: app/analytics.py, line: 12, snippet: "_mixpanel.track(", expected_sink_class: analytics, registry_package: mixpanel}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C03
+    description: >-
+      SSN passed through encrypt_field, which only base64-encodes it, then written to a log
+      line. Reversible encoding is equivalent to passthrough and must never be classified as
+      encrypted or hashed.
+    sources:
+      - {file: app/routes/identity.py, line: 13, snippet: "payload: IdentityVerificationRequest", field: ssn, expected_data_category: government_id}
+    sink: {file: app/routes/identity.py, line: 15, snippet: "logger.info(", expected_sink_class: log}
+    transform: {file: app/security.py, line: 6, snippet: "base64.b64encode"}
+    expected_transformation: reversible_encoding
+    must_not_classify_as: [encrypted, hashed, tokenized]
+    reachable: true
+    resolution: resolved
+    expected_findings: [reversible_obfuscation, logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C04
+    description: Precise latitude and longitude from a mobile client sent to a third-party weather API.
+    sources:
+      - {file: app/routes/location.py, line: 12, snippet: "payload: ForecastRequest", field: latitude, expected_data_category: precise_location}
+      - {file: app/routes/location.py, line: 12, snippet: "payload: ForecastRequest", field: longitude, expected_data_category: precise_location}
+    sink: {file: app/weather.py, line: 9, snippet: "httpx.get(", expected_sink_class: unknown_third_party}
+    expected_transformation: passthrough
+    precise_geolocation: true
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C05
+    description: Health condition from a form saved to a table with no retention policy.
+    sources:
+      - {file: app/routes/health.py, line: 13, snippet: "condition: str = Form(...)", field: condition, expected_data_category: health}
+    sink: {file: app/routes/health.py, line: 17, snippet: "session.add(record)", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    special_category: true
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [special_category_processing, indefinite_retention]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C06
+    description: >-
+      Date of birth used to compute age; only the age is stored, in a table whose rows carry
+      expires_at and are purged by a scheduled job. The date of birth itself is dropped.
+    sources:
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: date_of_birth, expected_data_category: demographic}
+    sink: {file: app/routes/users.py, line: 40, snippet: "session.add(metric)", expected_sink_class: first_party_store}
+    transform: {file: app/routes/users.py, line: 36, snippet: "age = _age_on("}
+    expected_transformation: aggregated
+    dropped_fields: [date_of_birth]
+    reachable: true
+    resolution: resolved
+    retention:
+      has_expiry: true
+      evidence:
+        - {file: app/routes/users.py, snippet: "SIGNUP_METRIC_TTL = timedelta(days=90)"}
+        - {file: app/jobs.py, snippet: "def purge_expired_signup_metrics"}
+        - {file: deploy/crontab, snippet: "purge-signup-metrics"}
+    expected_findings: [personal_data_processing]
+    forbidden_findings: [indefinite_retention, unresolved_flow]
+
+  - id: C07
+    description: >-
+      Referee email crossing six files: the route, a service, two helper modules, the
+      dependency-injection providers, and an injected repository class that writes it.
+    sources:
+      - {file: app/routes/referrals.py, line: 12, snippet: "payload: ReferralRequest", field: referee_email, expected_data_category: contact}
+    sink: {file: app/repositories/contact_repository.py, line: 13, snippet: "self._session.add(row)", expected_sink_class: first_party_store}
+    expected_transformation: passthrough
+    files_crossed:
+      - app/routes/referrals.py
+      - app/services/referral_service.py
+      - app/helpers/normalize.py
+      - app/helpers/envelope.py
+      - app/deps.py
+      - app/repositories/contact_repository.py
+    reachable: true
+    resolution: resolved
+    retention: {has_expiry: false}
+    expected_findings: [indefinite_retention]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C08
+    description: >-
+      Phone number placed in a dict that is read with a key taken from a constant defined in
+      another module. The analyzer must report the flow as unresolved with evidence, not miss
+      it and not assert it.
+    sources:
+      - {file: app/routes/partners.py, line: 10, snippet: "payload: PartnerSyncRequest", field: phone, expected_data_category: contact}
+    sink: {file: app/partners.py, line: 11, snippet: "response = httpx.post(", expected_sink_class: unknown_third_party}
+    opaque_access: {file: app/partners.py, line: 10, snippet: "profile[constants.PARTNER_CONTACT_FIELD]"}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: unresolved
+    expected_findings: [unresolved_flow]
+    forbidden_findings: [personal_data_to_third_party]
+
+  - id: C09
+    description: >-
+      sentry_sdk is initialized with a before_send hook that removes user.email, which
+      mitigates the set_user path. A separate exception path puts the email in an exception
+      message that is captured and sent unscrubbed.
+    sources:
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: email, expected_data_category: contact}
+    sink: {file: app/main.py, line: 33, snippet: "sentry_sdk.capture_exception(exc)", expected_sink_class: log, registry_package: sentry-sdk}
+    mitigation:
+      hook: before_send
+      hook_location: {file: app/observability.py, line: 19, snippet: "before_send=_scrub_user_pii"}
+      mitigated_sink: {file: app/observability.py, line: 26, snippet: "sentry_sdk.set_user("}
+    exception_raise: {file: app/routes/users.py, line: 30, snippet: "raise DuplicateAccountError("}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    dynamic_note: >-
+      Observed with sentry-sdk 2.71: besides the exception message, the event also carries the
+      full request body and stack-frame local variables (include_local_variables defaults to
+      true), so the email, name, date of birth and payment method all reach Sentry even with
+      send_default_pii=False.
+    expected_findings: [mitigated_partially, logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+
+  - id: C10
+    description: Stripe customer creation sending name, email, and a payment method id.
+    sources:
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: full_name, expected_data_category: identifier}
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: email, expected_data_category: contact}
+      - {file: app/routes/users.py, line: 27, snippet: "payload: SignupRequest", field: payment_method_id, expected_data_category: financial}
+    sink: {file: app/billing.py, line: 11, snippet: "stripe.Customer.create(", expected_sink_class: payment_processor, registry_package: stripe}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_processing]
+    forbidden_findings: [unresolved_flow, personal_data_to_third_party]
+
+  - id: C11
+    description: A function that would send every user's email to a legacy CRM but is never called.
+    sources:
+      - {file: app/legacy.py, line: 13, snippet: "session.query(User).all()", field: email, expected_data_category: contact}
+    sink: {file: app/legacy.py, line: 14, snippet: "httpx.post(LEGACY_CRM_URL", expected_sink_class: unknown_third_party}
+    expected_transformation: passthrough
+    reachable: false
+    resolution: resolved
+    expected_findings: [unreachable_flow]
+    forbidden_findings: [personal_data_to_third_party]
+
+  - id: C12
+    description: >-
+      User data exported to S3. The bucket region is eu-west-1 in config/settings.yaml and
+      us-east-1 in .env.example, so the storage jurisdiction is ambiguous.
+    sources:
+      - {file: app/routes/users.py, line: 52, snippet: "session.get(User, user_id)", field: email, expected_data_category: contact}
+    sink: {file: app/storage.py, line: 23, snippet: "_s3.put_object(", expected_sink_class: cloud_provider, registry_package: boto3}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    jurisdiction_review: true
+    conflicting_config:
+      key: s3_region
+      values:
+        - {file: config/settings.yaml, line: 4, snippet: "region: eu-west-1", value: eu-west-1}
+        - {file: .env.example, line: 6, snippet: "S3_REGION=us-east-1", value: us-east-1}
+    expected_findings: [cross_border_ambiguity]
+    forbidden_findings: [unresolved_flow]

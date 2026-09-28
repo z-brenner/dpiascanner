@@ -1,0 +1,33 @@
+{
+  "name": "canary-typescript",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "generate": "prisma generate",
+    "exercise": "tsx scripts/exercise.ts",
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1141.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "@sentry/node": "11.1.0",
+    "axios": "1.20.0",
+    "express": "5.2.1",
+    "mixpanel": "0.24.0",
+    "pg": "8.16.3",
+    "pino": "10.3.1",
+    "stripe": "22.6.2"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.18.0",
+    "@types/pg": "8.15.5",
+    "prisma": "7.10.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

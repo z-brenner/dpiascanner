@@ -1,0 +1,4 @@
+# Deployment defaults. Environment variables override these values.
+s3:
+  bucket: canary-user-exports
+  region: eu-west-1

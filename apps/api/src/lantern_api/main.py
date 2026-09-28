@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from lantern_api import auth, repos, runs, webhooks
+from lantern_api import auth, meta, repos, runs, webhooks
 from lantern_api.services import Services
 from lantern_platform.config import Settings
 
@@ -20,7 +20,7 @@ def create_app(services: Services) -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "Authorization"],
     )
-    for router in (auth.router, repos.router, runs.router, webhooks.router):
+    for router in (auth.router, meta.router, repos.router, runs.router, webhooks.router):
         app.include_router(router)
 
     @app.get("/healthz")

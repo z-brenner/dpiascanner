@@ -7,6 +7,8 @@ dependencies = [
     "lantern-platform",
     "lantern-report",
     "lantern-analysis",
+    "lantern-decisions",
+    "lantern-registry",
     "fastapi>=0.115",
     "uvicorn>=0.30",
 ]
@@ -15,6 +17,8 @@ dependencies = [
 lantern-platform = { workspace = true }
 lantern-report = { workspace = true }
 lantern-analysis = { workspace = true }
+lantern-decisions = { workspace = true }
+lantern-registry = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

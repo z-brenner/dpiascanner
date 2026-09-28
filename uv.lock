@@ -531,7 +531,9 @@ source = { editable = "apps/api" }
 dependencies = [
     { name = "fastapi" },
     { name = "lantern-analysis" },
+    { name = "lantern-decisions" },
     { name = "lantern-platform" },
+    { name = "lantern-registry" },
     { name = "lantern-report" },
     { name = "uvicorn" },
 ]
@@ -540,7 +542,9 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "lantern-analysis", editable = "packages/analysis" },
+    { name = "lantern-decisions", editable = "packages/decisions" },
     { name = "lantern-platform", editable = "packages/platform" },
+    { name = "lantern-registry", editable = "packages/registry" },
     { name = "lantern-report", editable = "packages/report" },
     { name = "uvicorn", specifier = ">=0.30" },
 ]

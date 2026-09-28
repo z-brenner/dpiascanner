@@ -103,6 +103,17 @@ def test_installation_callback_signs_in_and_encrypts_the_token(
     assert svc.cipher.decrypt(user.token_encrypted) == USER_TOKEN
 
 
+def test_config_is_public_and_settings_need_a_session(client: TestClient) -> None:
+    assert (
+        client.get("/config").json()["install_url"].endswith("/apps/lantern-dpia/installations/new")
+    )
+    assert client.get("/settings").status_code == 401
+    client.post("/auth/github/callback", json={"code": "good"})
+    settings = client.get("/settings").json()
+    assert settings["threshold"] == 0.75 and settings["question_set_version"] == "v1"
+    assert settings["registry_version"] and settings["severity_version"] == "severity-v2"
+
+
 def test_endpoints_require_a_session(client: TestClient) -> None:
     for path in ("/repos", "/runs/run-x", "/installations"):
         assert client.get(path).status_code == 401

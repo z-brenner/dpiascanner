@@ -54,6 +54,7 @@ class Step:
     text: str
     unresolved: bool = False
     note: str = ""
+    function: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -66,6 +67,8 @@ class Step:
             data["unresolved"] = True
         if self.note:
             data["note"] = self.note
+        if self.function:
+            data["function"] = self.function
         return data
 
 

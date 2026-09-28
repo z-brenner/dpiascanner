@@ -3,7 +3,18 @@ name = "lantern-worker"
 version = "0.1.0"
 description = "Lantern worker: clone, parse, graph, classify, verify, report."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "lantern-analysis",
+    "lantern-decisions",
+    "lantern-registry",
+    "lantern-report",
+]
+
+[tool.uv.sources]
+lantern-analysis = { workspace = true }
+lantern-decisions = { workspace = true }
+lantern-registry = { workspace = true }
+lantern-report = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

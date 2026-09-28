@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Parsing, rule matching, taint tracking and data-flow graph construction."
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "lantern-registry",
     "networkx>=3.3",
     "pyyaml>=6.0",
     "semgrep>=1.90",
@@ -18,3 +19,6 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/lantern_analysis"]
+
+[tool.uv.sources]
+lantern-registry = { workspace = true }

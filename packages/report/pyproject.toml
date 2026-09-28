@@ -3,7 +3,15 @@ name = "lantern-report"
 version = "0.1.0"
 description = "Findings assembly, DPIA assembly, statute mapping, and renderers."
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "lantern-analysis",
+    "lantern-decisions",
+    "pyyaml>=6.0",
+]
+
+[tool.uv.sources]
+lantern-analysis = { workspace = true }
+lantern-decisions = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

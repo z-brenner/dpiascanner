@@ -478,6 +478,7 @@ name = "lantern-analysis"
 version = "0.1.0"
 source = { editable = "packages/analysis" }
 dependencies = [
+    { name = "lantern-registry" },
     { name = "networkx" },
     { name = "pyyaml" },
     { name = "semgrep" },
@@ -488,6 +489,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "lantern-registry", editable = "packages/registry" },
     { name = "networkx", specifier = ">=3.3" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "semgrep", specifier = ">=1.90" },
@@ -527,11 +529,37 @@ source = { editable = "packages/registry" }
 name = "lantern-report"
 version = "0.1.0"
 source = { editable = "packages/report" }
+dependencies = [
+    { name = "lantern-analysis" },
+    { name = "lantern-decisions" },
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lantern-analysis", editable = "packages/analysis" },
+    { name = "lantern-decisions", editable = "packages/decisions" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "lantern-worker"
 version = "0.1.0"
 source = { editable = "apps/worker" }
+dependencies = [
+    { name = "lantern-analysis" },
+    { name = "lantern-decisions" },
+    { name = "lantern-registry" },
+    { name = "lantern-report" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lantern-analysis", editable = "packages/analysis" },
+    { name = "lantern-decisions", editable = "packages/decisions" },
+    { name = "lantern-registry", editable = "packages/registry" },
+    { name = "lantern-report", editable = "packages/report" },
+]
 
 [[package]]
 name = "lantern-workspace"

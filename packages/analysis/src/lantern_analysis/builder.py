@@ -240,13 +240,14 @@ class GraphBuilder:
 
     # ------------------------------------------------------------------ flows
 
-    @staticmethod
-    def _steps(edges: list[VEdge]) -> list[Step]:
+    def _steps(self, edges: list[VEdge]) -> list[Step]:
         steps: list[Step] = []
         for edge in edges:
             s = edge.step
             if not s.file:
                 continue
+            fn = self.project.functions.get(edge.fid)
+            function = fn.qualname if fn is not None else ""
             if steps and (steps[-1].file, steps[-1].line, steps[-1].kind) == (
                 s.file,
                 s.line,
@@ -260,9 +261,12 @@ class GraphBuilder:
                     last.text,
                     last.unresolved or s.unresolved,
                     last.note or s.note,
+                    last.function or function,
                 )
                 continue
-            steps.append(Step(s.file, s.line, s.kind, redact(s.text), s.unresolved, s.note))
+            steps.append(
+                Step(s.file, s.line, s.kind, redact(s.text), s.unresolved, s.note, function)
+            )
         return steps
 
     def add_hit(self, spec: SourceSpec, hit: Hit, sink: SinkSpec) -> None:

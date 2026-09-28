@@ -218,3 +218,15 @@ def test_fixture_is_runnable(fixture: str) -> None:
     has_tests = any((root / d).is_dir() for d in ("tests", "test"))
     has_exercise = any((root / "scripts").glob("exercise.*"))
     assert has_tests and has_exercise
+
+
+def test_dependency_fixture_manifest_locations() -> None:
+    manifest = load_manifest("unregistered-sdk-python")
+    assert [f["id"] for f in manifest["flows"]] == ["D01"]
+    for flow in manifest["flows"]:
+        for source in flow["sources"]:
+            assert_location("unregistered-sdk-python", source)
+        assert_location("unregistered-sdk-python", flow["sink"])
+        assert set(flow["expected_findings"]) <= FINDING_CATEGORIES
+    mirror = FIXTURES / "dependency-mirror" / "pypi"
+    assert (mirror / "acme-geo-0.3.1" / "acme_geo" / "client.py").is_file()

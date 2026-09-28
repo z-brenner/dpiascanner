@@ -1,0 +1,18 @@
+# Flows that only dependency-source profiling can find.
+schema_version: 1
+fixture: unregistered-sdk-python
+language: python
+flows:
+  - id: D01
+    description: Precise coordinates passed to an SDK method that is not in the registry and posts them to its vendor.
+    sources:
+      - {file: app/main.py, line: 19, snippet: "payload: NearbyRequest", field: latitude, expected_data_category: precise_location}
+      - {file: app/main.py, line: 19, snippet: "payload: NearbyRequest", field: longitude, expected_data_category: precise_location}
+    sink: {file: app/main.py, line: 21, snippet: "geo.locate(", expected_sink_class: unknown_third_party}
+    dependency: {package: acme-geo, version: 0.3.1, endpoint: api.acme-geo.example, network_methods: [locate]}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]
+non_network_dependencies: [tiny-utils]

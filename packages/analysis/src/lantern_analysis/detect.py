@@ -26,6 +26,7 @@ from lantern_analysis.model import Span
 from lantern_analysis.project import ClassT, ExtT, Project
 from lantern_analysis.rules import RuleMatch
 from lantern_registry import Registry, RegistryEntry
+from lantern_registry.resolver import DependencyProfile
 
 HTTP_METHODS = frozenset(
     {
@@ -133,6 +134,7 @@ class SinkSpec:
     event_path: str | None = None
     model: str | None = None
     external: str | None = None
+    dependency: DependencyProfile | None = None
 
 
 @dataclass
@@ -170,12 +172,18 @@ class Detection:
 
 class Detector:
     def __init__(
-        self, project: Project, matches: list[RuleMatch], lexicon: Lexicon, registry: Registry
+        self,
+        project: Project,
+        matches: list[RuleMatch],
+        lexicon: Lexicon,
+        registry: Registry,
+        dependencies: list[DependencyProfile] | None = None,
     ) -> None:
         self.project = project
         self.matches = matches
         self.lexicon = lexicon
         self.registry = registry
+        self.dependencies = [d for d in dependencies or [] if d.status == "profiled"]
         self.d = Detection()
 
     # ------------------------------------------------------------------ driver
@@ -542,7 +550,7 @@ class Detector:
                 existing.rule_ids.append(match.rule_id)
             existing.persists = existing.persists or bool(match.metadata.get("persists"))
             return
-        self.d.sinks[call.cid] = SinkSpec(
+        spec = SinkSpec(
             cid=call.cid,
             call=call,
             fid=fn.fid,
@@ -552,6 +560,12 @@ class Detector:
             returns_input=bool(match.metadata.get("returns_input")),
             model=(model[:1].upper() + model[1:]) if model else None,
         )
+        registry_id = match.metadata.get("registry")
+        if registry_id:
+            # Globals such as gtag() and fbq() have no import to resolve.
+            spec.registry = self.registry.get(str(registry_id))
+            spec.method = call.func.text.split(".")[-1]
+        self.d.sinks[call.cid] = spec
 
     def _orm_model_of_write(self, fn: Function, call: Call) -> str | None:
         for arg in call.args:
@@ -571,8 +585,12 @@ class Detector:
                         target = self.project.resolve_call(fn, e)
                         if target.kind != "external" or target.spec is None:
                             continue
-                        entry = self.registry.match_import(language, target.spec)
-                        if entry is None or target.is_constructor or e.is_new:
+                        path = target.import_path(language) or target.spec
+                        entry = self.registry.match_import(language, path)
+                        if target.is_constructor or e.is_new:
+                            continue
+                        if entry is None:
+                            self._dependency_sink(fn, e, language, path, target.method or "")
                             continue
                         method = (target.method or "").removesuffix("()")
                         if not entry.is_sink_call(method):
@@ -600,6 +618,24 @@ class Detector:
                             "putObject",
                         ):
                             sink.persists = True
+
+    def _dependency_sink(
+        self, fn: Function, call: Call, language: str, path: str, method: str
+    ) -> None:
+        method = method.removesuffix("()")
+        for profile in self.dependencies:
+            if profile.matches_import(path) and method in profile.network_methods:
+                prefix = "python" if language == "python" else "ts"
+                rule_id = f"{prefix}.sink.dependency.{profile.name}"
+                sink = self.d.sinks.get(call.cid)
+                if sink is None:
+                    sink = SinkSpec(call.cid, call, fn.fid, [], "dependency")
+                    self.d.sinks[call.cid] = sink
+                if rule_id not in sink.rule_ids:
+                    sink.rule_ids.append(rule_id)
+                sink.dependency = profile
+                sink.method = method
+                return
 
 
 def parse_prisma_schema(text: str) -> dict[str, list[str]]:

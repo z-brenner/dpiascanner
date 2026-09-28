@@ -159,7 +159,8 @@ def find_mitigations(project: Project, registry: Registry) -> list[MitigationEvi
                     target = project.resolve_call(fn, e)
                     if target.kind != "external" or target.spec is None:
                         continue
-                    entry: RegistryEntry | None = registry.match_import(language, target.spec)
+                    path = target.import_path(language) or target.spec
+                    entry: RegistryEntry | None = registry.match_import(language, path)
                     if entry is None:
                         continue
                     for hook in entry.hooks_for(language):

@@ -319,7 +319,7 @@ rules:
 
   - name: unregistered http destination
     applies_to: [sink]
-    when: [{path: rule_ids, matches: "\\.sink\\.http\\."}]
+    when: [{path: rule_ids, matches: "\\.sink\\.(http|dependency)\\."}]
     unless: [{path: registry.destination_class, exists: true}]
     confidence: 0.86
     answers:

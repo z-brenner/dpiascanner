@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tempfile
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,6 +19,12 @@ from lantern_analysis.repo import RepoSettings, discover
 from lantern_analysis.rules import RuleMatch, run_semgrep
 from lantern_analysis.taint import TaintEngine
 from lantern_registry import Registry, load_registry
+from lantern_registry.resolver import (
+    DependencyProfile,
+    PackageSource,
+    RegistrySources,
+    resolve_unregistered,
+)
 
 
 @dataclass
@@ -28,6 +35,8 @@ class AnalysisOptions:
     languages: list[str] | None = None
     library_mode: str = "auto"
     max_states_per_source: int = 250_000
+    dependency_depth: int = 0  # 1: profile unregistered dependencies from their source
+    dependency_cap: int = 10
 
 
 def analyze_repo(
@@ -36,6 +45,7 @@ def analyze_repo(
     options: AnalysisOptions | None = None,
     registry: Registry | None = None,
     repo_name: str | None = None,
+    package_source: PackageSource | None = None,
 ) -> DataFlowGraph:
     started = time.monotonic()
     root = Path(root).resolve()
@@ -50,7 +60,12 @@ def analyze_repo(
         matches.extend(run_semgrep(root, paths, language))
     lexicon = Lexicon.load(track_internal_ids=options.track_internal_ids)
     registry = registry or load_registry()
-    detection = Detector(project, matches, lexicon, registry).run()
+    dependencies = (
+        _profile_dependencies(project, registry, options, package_source or RegistrySources())
+        if options.dependency_depth >= 1
+        else []
+    )
+    detection = Detector(project, matches, lexicon, registry, dependencies).run()
     engine = TaintEngine(
         project, detection, lexicon, options.depth_limit, options.max_states_per_source
     )
@@ -64,6 +79,12 @@ def analyze_repo(
         commit=commit,
         options={**asdict(options), "lexicon": lexicon.version, "registry": registry.version},
     ).build()
+    graph.summary["dependencies"] = {
+        "analyzed": sum(1 for d in dependencies if d.status in ("profiled", "no-network")),
+        "skipped": sum(1 for d in dependencies if d.status not in ("profiled", "no-network")),
+        "profiles": [d.to_dict() for d in dependencies],
+        "depth": options.dependency_depth,
+    }
     graph.summary["duration_s"] = round(time.monotonic() - started, 3)
     graph.summary["entry_points_detail"] = [
         {
@@ -78,3 +99,38 @@ def analyze_repo(
         if e.kind != "module" and e.fid in project.functions
     ]
     return graph
+
+
+def imported_packages(project: Project) -> dict[str, set[str]]:
+    """Import specifiers that resolve outside the project, by language."""
+    out: dict[str, set[str]] = {}
+    for module in project.modules.values():
+        for imp in module.imports.values():
+            if imp.type_only:
+                continue
+            sym = project.resolve_import(module, imp)
+            if type(sym).__name__ != "ExternalSym":
+                continue
+            spec = sym.spec  # type: ignore[union-attr]
+            if module.language == "python":
+                spec = imp.module if imp.level == 0 else ""
+            if spec and not spec.startswith("."):
+                out.setdefault(module.language, set()).add(spec)
+    return out
+
+
+def _profile_dependencies(
+    project: Project, registry: Registry, options: AnalysisOptions, source: PackageSource
+) -> list[DependencyProfile]:
+    from lantern_analysis.deps import profile_package
+
+    with tempfile.TemporaryDirectory(prefix="lantern-deps-") as workdir:
+        return resolve_unregistered(
+            project.root,
+            imported_packages(project),
+            registry,
+            lambda path, language, name: profile_package(path, language, name, registry),
+            source,
+            Path(workdir),
+            cap=options.dependency_cap,
+        )

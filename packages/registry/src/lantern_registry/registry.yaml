@@ -3,21 +3,30 @@
 # Entries are evidence, not verdicts. The analyzer uses them to create sink nodes with known
 # semantics and to detect mitigation hooks; the decision layer still classifies what the
 # caller actually passed. Vendor claims are recorded as claims, with a link to the terms.
+#
+# Review status: every entry below is an initial draft compiled from vendor documentation
+# known to the authors, not a legal review. `reviewed_by` says so. URLs are checked monthly
+# by `python -m lantern_registry.validate --check-urls`. Before relying on an entry in a
+# DPIA, a human must confirm the processor claim and the regions against the linked terms.
+#
+# Matching order matters: the first entry whose `imports` match wins, so narrower entries
+# (firebase-analytics) come before broader ones (firebase).
 version: "2026.09"
 schema_version: 1
 entries:
+  # ---------------------------------------------------------------- error reporting and observability
   - id: sentry
     vendor: Functional Software, Inc. (Sentry)
     packages:
-      pypi: [sentry-sdk]
-      npm: ["@sentry/*"]
+      pypi: [sentry-sdk, raven]
+      npm: ["@sentry/*", raven-js]
     imports:
-      python: [sentry_sdk]
-      typescript: ["@sentry/*"]
+      python: [sentry_sdk, raven]
+      typescript: ["@sentry/*", raven-js]
     destination_class: log
     sink_calls: [capture_exception, capture_message, capture_event, set_user, set_context, set_extra, set_tag, add_breadcrumb,
-                 captureException, captureMessage, captureEvent, setUser, setContext, setExtra, setTag, addBreadcrumb]
-    setup_calls: [init, flush, close]
+                 captureException, captureMessage, captureEvent, setUser, setContext, setExtra, setTag, setTags, addBreadcrumb]
+    setup_calls: [init, flush, close, configure_scope, push_scope, start_transaction, startSpan, setupExpressErrorHandler]
     event_paths:
       set_user: user
       setUser: user
@@ -31,6 +40,7 @@ entries:
       setExtra: extra
       set_tag: tags
       setTag: tags
+      setTags: tags
       add_breadcrumb: breadcrumbs
       addBreadcrumb: breadcrumbs
     captures_unhandled_exceptions: true
@@ -60,10 +70,114 @@ entries:
          description: When false, the SDK omits IP and cookies. It does not stop request data or error messages.}
       - {name: include_local_variables, kind: flag, languages: [python], config_call: init, argument: include_local_variables,
          description: Set to false to stop sending stack-frame locals.}
+      - {name: max_request_body_size, kind: flag, languages: [python], config_call: init, argument: max_request_body_size,
+         description: Set to "never" to stop sending request bodies.}
     last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
     references:
       - https://docs.sentry.io/platforms/python/data-management/data-collected/
       - https://docs.sentry.io/platforms/javascript/guides/node/data-management/data-collected/
+
+  - id: datadog
+    vendor: Datadog, Inc.
+    packages:
+      pypi: [datadog, ddtrace, datadog-api-client]
+      npm: [dd-trace, "@datadog/browser-rum", "@datadog/browser-logs", "@datadog/datadog-api-client", datadog-metrics]
+    imports:
+      python: [datadog, ddtrace, datadog_api_client]
+      typescript: [dd-trace, "@datadog/*", datadog-metrics]
+    destination_class: log
+    sink_calls: [log, info, warn, warning, error, debug, set_tag, setTag, setUser, setGlobalContextProperty, addAction, addError,
+                 send, submit_log, event, gauge, increment]
+    setup_calls: [init, initialize, patch, patch_all, tracer, start, configure]
+    auto_collected:
+      - APM traces with span names, resource names, URLs, and tags. Query strings are obfuscated by a default regex; request bodies are not collected by default.
+      - Log lines sent by the logs integration, including anything the application logs.
+      - "Browser RUM: IP address, geolocation derived from it, user agent, page URLs and actions; Session Replay if enabled (privacy level defaults to mask for inputs in recent SDKs)."
+    endpoints:
+      - {host: datadoghq.com, region: US1}
+      - {host: us3.datadoghq.com, region: US3}
+      - {host: us5.datadoghq.com, region: US5}
+      - {host: datadoghq.eu, region: "EU1 (Germany)"}
+      - {host: ap1.datadoghq.com, region: "AP1 (Japan)"}
+      - {host: ddog-gov.com, region: US1-FED}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Datadog's DPA describes Datadog as processor and service provider.
+    dpa_url: https://www.datadoghq.com/legal/data-processing-addendum/
+    mitigation_hooks:
+      - {name: defaultPrivacyLevel, kind: flag, languages: [typescript], config_call: init, argument: defaultPrivacyLevel,
+         description: "RUM Session Replay masking; mask hides all text and inputs."}
+      - {name: beforeSend, kind: event_scrubber, languages: [typescript], config_call: init, argument: beforeSend,
+         description: Browser RUM and logs callback that can edit or drop events.}
+      - {name: sensitive_data_scanner, kind: config, languages: [python, typescript],
+         description: Server-side scanning rules configured in the Datadog UI; invisible to code analysis.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: newrelic
+    vendor: New Relic, Inc.
+    packages:
+      pypi: [newrelic]
+      npm: [newrelic, "@newrelic/browser-agent"]
+    imports:
+      python: [newrelic]
+      typescript: [newrelic, "@newrelic/*"]
+    destination_class: log
+    sink_calls: [record_custom_event, record_exception, add_custom_attribute, add_custom_attributes, notice_error,
+                 recordCustomEvent, noticeError, addCustomAttribute, addCustomAttributes, setUserId, recordLogEvent]
+    setup_calls: [initialize, register_application, shutdown_agent, agent]
+    auto_collected:
+      - Transaction traces, error traces with messages, and request attributes. Request headers and parameters are excluded unless configured.
+      - Browser agent collects page views, user agent, and page URLs.
+    endpoints:
+      - {host: collector.newrelic.com, region: US}
+      - {host: collector.eu01.nr-data.net, region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: New Relic's data processing terms are incorporated into its general terms; the dpa_url links to the terms page that references them.
+    dpa_url: https://newrelic.com/termsandconditions/terms
+    mitigation_hooks:
+      - {name: high_security, kind: flag, languages: [python, typescript],
+         description: Account-level high security mode disables collection of request parameters and message bodies.}
+      - {name: strip_exception_messages, kind: flag, languages: [python, typescript],
+         description: Removes exception messages from error traces.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  # ---------------------------------------------------------------- product analytics
+  - id: segment
+    vendor: Twilio Inc. (Segment)
+    packages:
+      pypi: [segment-analytics-python, analytics-python]
+      npm: ["@segment/analytics-node", "@segment/analytics-next", analytics-node, "@segment/analytics.js-core"]
+    imports:
+      python: [segment.analytics, analytics]
+      typescript: ["@segment/*", analytics-node]
+    destination_class: analytics
+    sink_calls: [track, identify, page, screen, group, alias, flush]
+    setup_calls: [load, Analytics, AnalyticsBrowser, close, shutdown]
+    auto_collected:
+      - "analytics.js: IP address, user agent, page URL, referrer, UTM parameters, and an anonymousId cookie."
+      - Server libraries send the properties passed plus library context.
+      - Segment forwards events to downstream destinations (for example Google Ads or Meta) configured in the Segment workspace. Those onward disclosures are invisible in application code.
+    endpoints:
+      - {host: api.segment.io, region: US}
+      - {host: events.eu1.segmentapis.com, region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Covered by the Twilio DPA for Segment. Downstream destinations have their own terms and may not be service providers.
+    dpa_url: https://www.twilio.com/en-us/legal/data-protection-addendum
+    mitigation_hooks:
+      - {name: integrations, kind: config, languages: [python, typescript],
+         description: Per-call integrations object that disables delivery to specific destinations.}
+      - {name: privacy_portal, kind: config, languages: [python, typescript],
+         description: Workspace-level schema controls and PII blocking; invisible to code analysis.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
 
   - id: mixpanel
     vendor: Mixpanel, Inc.
@@ -74,8 +188,8 @@ entries:
       python: [mixpanel]
       typescript: [mixpanel, mixpanel-browser]
     destination_class: analytics
-    sink_calls: [track, import_data, alias, merge, people_set, people_set_once, people_append, people_union, people_increment, group_set,
-                 identify, register, people.set, people.set_once, set, set_once]
+    sink_calls: [track, import_data, alias, merge, people_set, people_set_once, people_append, people_union, people_increment,
+                 group_set, identify, register, people.set, people.set_once, set, set_once, track_batch]
     setup_calls: [init, Consumer, BufferedConsumer, flush]
     auto_collected:
       - Server libraries send only the properties passed, plus library metadata and time.
@@ -92,8 +206,189 @@ entries:
     mitigation_hooks:
       - {name: opt_out_tracking, kind: config, languages: [typescript], description: mixpanel-browser opt-out switch.}
       - {name: ip, kind: flag, languages: [python, typescript], description: "Set ip: 0 on server events to stop IP-based geolocation."}
+      - {name: property_blacklist, kind: config, languages: [typescript], description: mixpanel-browser list of properties never sent.}
     last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
 
+  - id: amplitude
+    vendor: Amplitude, Inc.
+    packages:
+      pypi: [amplitude-analytics]
+      npm: ["@amplitude/analytics-node", "@amplitude/analytics-browser", "@amplitude/analytics-react-native", amplitude-js]
+    imports:
+      python: [amplitude]
+      typescript: ["@amplitude/*", amplitude-js]
+    destination_class: analytics
+    sink_calls: [track, identify, group_identify, set_group, revenue, logEvent, setUserId, setUserProperties, groupIdentify]
+    setup_calls: [init, Amplitude, Config, flush, shutdown]
+    auto_collected:
+      - "Browser and mobile SDKs: device ID, platform, OS, device model, IP address (used for location), city, region, country, language; page views and form interactions with autocapture."
+      - Server SDKs send the properties passed plus library metadata.
+    endpoints:
+      - {host: api2.amplitude.com, region: US}
+      - {host: api.eu.amplitude.com, region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Amplitude's DPA describes Amplitude as processor and service provider.
+    dpa_url: https://amplitude.com/dpa
+    mitigation_hooks:
+      - {name: trackingOptions, kind: config, languages: [typescript],
+         description: Disable collection of ipAddress, city, dma and other device fields.}
+      - {name: serverZone, kind: config, languages: [python, typescript], description: "Set to EU to use the EU endpoint."}
+      - {name: optOut, kind: flag, languages: [python, typescript], description: Stops sending events.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: posthog
+    vendor: PostHog, Inc.
+    packages:
+      pypi: [posthog]
+      npm: [posthog-node, posthog-js, posthog-react-native]
+    imports:
+      python: [posthog]
+      typescript: [posthog-node, posthog-js, posthog-react-native]
+    destination_class: analytics
+    sink_calls: [capture, identify, alias, group_identify, set, set_once, groupIdentify, register]
+    setup_calls: [init, Posthog, PostHog, shutdown, flush]
+    auto_collected:
+      - "posthog-js: pageviews, clicks and form interactions with autocapture, IP address (unless discarded in project settings), user agent, referrer; session recordings if enabled (inputs masked by default)."
+      - Server libraries send the properties passed.
+    endpoints:
+      - {host: us.i.posthog.com, region: US}
+      - {host: eu.i.posthog.com, region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Applies to PostHog Cloud. A self-hosted PostHog is a first-party store.
+    dpa_url: https://posthog.com/dpa
+    mitigation_hooks:
+      - {name: autocapture, kind: flag, languages: [typescript], config_call: init, argument: autocapture, description: Set false to disable autocapture.}
+      - {name: property_denylist, kind: config, languages: [typescript], config_call: init, argument: property_denylist, description: Properties never sent.}
+      - {name: before_send, kind: event_scrubber, languages: [typescript], config_call: init, argument: before_send,
+         description: posthog-js callback that can edit or drop events. Confirm availability for the SDK version in use.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: google-analytics
+    vendor: Google LLC (Google Analytics)
+    packages:
+      pypi: []
+      npm: [react-ga4, react-ga, ga-4-react, vue-gtag, "@next/third-parties", "@analytics/google-analytics"]
+    imports:
+      python: []
+      typescript: [react-ga4, react-ga, ga-4-react, vue-gtag, "@next/third-parties/google", "@analytics/google-analytics"]
+    destination_class: analytics
+    sink_calls: [event, send, gtag, sendGAEvent, set, pageview, initialize]
+    setup_calls: [GoogleAnalytics, GoogleTagManager]
+    auto_collected:
+      - Client ID cookie, page URL, referrer, user agent, screen resolution, language, and coarse location derived from IP. GA4 does not log or store IP addresses, according to Google.
+      - With Google Signals or advertising features enabled, data is linked to signed-in Google accounts for cross-device and advertising purposes.
+    endpoints:
+      - {host: www.google-analytics.com, region: US}
+      - {host: region1.google-analytics.com, region: US}
+      - {host: www.googletagmanager.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: null
+      notes: Google offers data processing terms for Analytics. CPRA service-provider status depends on account settings (advertising features, Google Signals, restricted data processing) and cannot be determined from code.
+    dpa_url: https://business.safety.google/adsprocessorterms/
+    mitigation_hooks:
+      - {name: allow_google_signals, kind: flag, languages: [typescript], description: "gtag config allow_google_signals: false."}
+      - {name: allow_ad_personalization_signals, kind: flag, languages: [typescript], description: "gtag config allow_ad_personalization_signals: false."}
+      - {name: consent_mode, kind: config, languages: [typescript], description: "gtag('consent', ...) controls storage and ad signals."}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: firebase-analytics
+    vendor: Google LLC (Google Analytics for Firebase)
+    packages:
+      pypi: []
+      npm: ["@react-native-firebase/analytics"]
+    imports:
+      python: []
+      typescript: [firebase/analytics, "@firebase/analytics", "@react-native-firebase/analytics"]
+    destination_class: analytics
+    sink_calls: [logEvent, setUserId, setUserProperties, setCurrentScreen, logScreenView]
+    setup_calls: [getAnalytics, initializeAnalytics, isSupported, setAnalyticsCollectionEnabled]
+    auto_collected:
+      - App instance ID, device model, OS version, app version, coarse location derived from IP, and automatically logged events (first_open, session_start, screen_view, in-app purchases).
+    endpoints:
+      - {host: app-measurement.com, region: US}
+      - {host: firebaselogging-pa.googleapis.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: null
+      notes: Google Analytics for Firebase follows Google Analytics terms. CPRA status depends on advertising and data-sharing settings.
+    dpa_url: https://firebase.google.com/terms/data-processing-terms
+    mitigation_hooks:
+      - {name: setAnalyticsCollectionEnabled, kind: flag, languages: [typescript], description: Disables Analytics collection.}
+      - {name: google_analytics_default_allow_ad_personalization_signals, kind: config, languages: [typescript], description: Manifest or plist setting.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: firebase
+    vendor: Google LLC (Firebase)
+    packages:
+      pypi: [firebase-admin]
+      npm: [firebase, firebase-admin, "@firebase/*", "@react-native-firebase/*"]
+    imports:
+      python: [firebase_admin]
+      typescript: [firebase, firebase-admin, "firebase/*", "firebase-admin/*", "@firebase/*", "@react-native-firebase/*"]
+    destination_class: cloud_provider
+    sink_calls: ["*"]
+    setup_calls: [initialize_app, initializeApp, getApp, getApps, credential, Certificate, getFirestore, getAuth, getStorage,
+                  getMessaging, collection, doc, ref, firestore, auth, storage, messaging]
+    auto_collected:
+      - Firebase Installations ID and device metadata for client SDKs. Crashlytics collects crash reports and device state.
+      - Firestore, Realtime Database, Storage, and Auth store whatever the caller writes.
+    endpoints:
+      - {host: firestore.googleapis.com, region: Set per Firestore database location}
+      - {host: firebasestorage.googleapis.com, region: Set per bucket location}
+      - {host: identitytoolkit.googleapis.com, region: US}
+      - {host: fcm.googleapis.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Firebase Data Processing and Security Terms cover most Firebase services; some services follow other Google terms.
+    dpa_url: https://firebase.google.com/terms/data-processing-terms
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  # ---------------------------------------------------------------- advertising
+  - id: meta-pixel
+    vendor: Meta Platforms, Inc. (Pixel and Conversions API)
+    packages:
+      pypi: [facebook-business]
+      npm: [react-facebook-pixel, facebook-nodejs-business-sdk, "@bettercart/react-facebook-pixel"]
+    imports:
+      python: [facebook_business]
+      typescript: [react-facebook-pixel, facebook-nodejs-business-sdk, "@bettercart/react-facebook-pixel"]
+    destination_class: ad_tech
+    sink_calls: [track, trackCustom, trackSingle, trackSingleCustom, pageView, fbq, execute, create_event, setEvents, init]
+    setup_calls: [FacebookAdsApi, init_api]
+    auto_collected:
+      - "Pixel: IP address, user agent, page URL, referrer, _fbp and _fbc cookies, button click metadata with automatic event setup."
+      - Advanced matching sends hashed email, phone, name and other identifiers when enabled. SHA-256 of an email is still personal data and is matchable by Meta.
+      - Conversions API sends whatever the server passes, typically hashed identifiers plus IP and user agent.
+    endpoints:
+      - {host: www.facebook.com, region: US}
+      - {host: connect.facebook.net, region: US}
+      - {host: graph.facebook.com, region: US}
+    processor_claims:
+      gdpr_processor: false
+      cpra_service_provider: false
+      notes: "Under Fashion ID (CJEU C-40/17) a website embedding Meta's code is joint controller with Meta for collection and transmission. Meta acts as a service provider for California users only in Limited Data Use mode; otherwise disclosures are likely sharing for cross-context behavioral advertising (Cal. Civ. Code 1798.140(ah))."
+    dpa_url: https://www.facebook.com/legal/terms/businesstools
+    mitigation_hooks:
+      - {name: dataProcessingOptions, kind: config, languages: [python, typescript],
+         description: "Limited Data Use: fbq('dataProcessingOptions', ['LDU'], 0, 0) or data_processing_options on Conversions API events."}
+      - {name: autoConfig, kind: flag, languages: [typescript], description: Disable automatic event setup and button metadata collection.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  # ---------------------------------------------------------------- payments
   - id: stripe
     vendor: Stripe, Inc.
     packages:
@@ -104,7 +399,7 @@ entries:
       typescript: [stripe, "@stripe/stripe-js", "@stripe/react-stripe-js"]
     destination_class: payment_processor
     sink_calls: ["*"]
-    setup_calls: [Stripe, StripeClient, loadStripe, set_app_info, setAppInfo]
+    setup_calls: [Stripe, StripeClient, loadStripe, set_app_info, setAppInfo, Elements, elements, constructEvent, construct_event]
     auto_collected:
       - Server SDKs send only the parameters passed, plus request telemetry (request ids and latency; enable_telemetry defaults to true).
       - Stripe.js collects device and browser signals for fraud prevention.
@@ -117,18 +412,280 @@ entries:
     dpa_url: https://stripe.com/legal/dpa
     mitigation_hooks: []
     last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
 
+  # ---------------------------------------------------------------- communications
+  - id: twilio
+    vendor: Twilio Inc.
+    packages:
+      pypi: [twilio]
+      npm: [twilio]
+    imports:
+      python: [twilio]
+      typescript: [twilio]
+    destination_class: communications
+    sink_calls: [create, update, send, verifications, calls, messages]
+    setup_calls: [Client, twilio]
+    auto_collected:
+      - Phone numbers and message bodies passed; Twilio retains message logs, including bodies, by default.
+    endpoints:
+      - {host: api.twilio.com, region: US1}
+      - {host: api.dublin.ie1.twilio.com, region: "IE1 (Ireland)"}
+      - {host: api.sydney.au1.twilio.com, region: "AU1 (Australia)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Twilio DPA.
+    dpa_url: https://www.twilio.com/en-us/legal/data-protection-addendum
+    mitigation_hooks:
+      - {name: message_redaction, kind: config, languages: [python, typescript],
+         description: Account setting that redacts message bodies and phone numbers from logs after delivery.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: sendgrid
+    vendor: Twilio Inc. (SendGrid)
+    packages:
+      pypi: [sendgrid]
+      npm: ["@sendgrid/mail", "@sendgrid/client"]
+    imports:
+      python: [sendgrid]
+      typescript: ["@sendgrid/*"]
+    destination_class: communications
+    sink_calls: [send, sendMultiple, post, request, Mail]
+    setup_calls: [SendGridAPIClient, setApiKey, setDataResidency]
+    auto_collected:
+      - Recipient addresses and message content passed.
+      - Open tracking inserts a pixel and click tracking rewrites links, which records recipients' IP address and user agent on open and click.
+    endpoints:
+      - {host: api.sendgrid.com, region: US}
+      - {host: api.eu.sendgrid.com, region: "EU (regional subusers)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Twilio DPA covers SendGrid.
+    dpa_url: https://www.twilio.com/en-us/legal/data-protection-addendum
+    mitigation_hooks:
+      - {name: tracking_settings, kind: config, languages: [python, typescript],
+         description: Disable open_tracking and click_tracking per message or account.}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: mailchimp
+    vendor: Intuit Inc. (Mailchimp)
+    packages:
+      pypi: [mailchimp3, mailchimp-marketing, mailchimp-transactional]
+      npm: ["@mailchimp/mailchimp_marketing", "@mailchimp/mailchimp_transactional"]
+    imports:
+      python: [mailchimp3, mailchimp_marketing, mailchimp_transactional]
+      typescript: ["@mailchimp/*"]
+    destination_class: communications
+    sink_calls: ["*"]
+    setup_calls: [set_config, setConfig, Client, MailChimp]
+    auto_collected:
+      - List member data passed (email, merge fields, tags). Campaign emails track opens and clicks, recording IP address and user agent.
+    endpoints:
+      - {host: "*.api.mailchimp.com", region: US}
+      - {host: mandrillapp.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Mailchimp Data Processing Addendum.
+    dpa_url: https://mailchimp.com/legal/data-processing-addendum/
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: intercom
+    vendor: Intercom, Inc.
+    packages:
+      pypi: [python-intercom]
+      npm: [intercom-client, "@intercom/messenger-js-sdk", react-use-intercom]
+    imports:
+      python: [intercom]
+      typescript: [intercom-client, "@intercom/*", react-use-intercom]
+    destination_class: communications
+    sink_calls: [create, update, boot, update_user, trackEvent, track_event, createOrUpdate, submit, reply]
+    setup_calls: [Client, IntercomClient, Intercom, shutdown]
+    auto_collected:
+      - "Messenger: user agent, IP-derived location, pages viewed, session data, and any user attributes passed to boot or update."
+    endpoints:
+      - {host: api.intercom.io, region: US}
+      - {host: api.eu.intercom.io, region: EU}
+      - {host: api.au.intercom.io, region: Australia}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Intercom DPA.
+    dpa_url: https://www.intercom.com/legal/data-processing-agreement
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: hubspot
+    vendor: HubSpot, Inc.
+    packages:
+      pypi: [hubspot-api-client]
+      npm: ["@hubspot/api-client"]
+    imports:
+      python: [hubspot]
+      typescript: ["@hubspot/*"]
+    destination_class: communications
+    sink_calls: [create, update, upsert, batch_api, basic_api, merge, send, doSearch]
+    setup_calls: [HubSpot, Client]
+    auto_collected:
+      - CRM records passed (contacts, companies, deals). The HubSpot tracking code, if embedded, sets cookies and records page views and IP-derived location.
+    endpoints:
+      - {host: api.hubapi.com, region: US}
+      - {host: api-eu1.hubapi.com, region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: HubSpot DPA.
+    dpa_url: https://legal.hubspot.com/dpa
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: braze
+    vendor: Braze, Inc.
+    packages:
+      pypi: [braze-client]
+      npm: ["@braze/web-sdk", "@braze/react-native-sdk"]
+    imports:
+      python: [braze]
+      typescript: ["@braze/*"]
+    destination_class: communications
+    sink_calls: [track, users_track, logCustomEvent, logPurchase, changeUser, setEmail, setPhoneNumber, setCustomUserAttribute, send]
+    setup_calls: [initialize, openSession, BrazeClient]
+    auto_collected:
+      - "Web and mobile SDKs: device model, OS, browser, language, time zone, IP-derived location, session start and end, and push tokens."
+    endpoints:
+      - {host: "rest.iad-*.braze.com", region: US}
+      - {host: "rest.fra-*.braze.eu", region: EU}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Braze DPA.
+    dpa_url: https://www.braze.com/company/legal/dpa
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: onesignal
+    vendor: OneSignal, Inc.
+    packages:
+      pypi: [onesignal-python-api, onesignal-sdk]
+      npm: ["@onesignal/node-onesignal", react-onesignal, onesignal-cordova-plugin]
+    imports:
+      python: [onesignal_sdk, onesignal]
+      typescript: ["@onesignal/*", react-onesignal]
+    destination_class: communications
+    sink_calls: [create_notification, createNotification, login, addEmail, addSms, addTag, addTags, sendTag, sendTags, setExternalUserId]
+    setup_calls: [init, DefaultApi, createConfiguration, Client]
+    auto_collected:
+      - Push token, device model, OS, language, time zone, IP address, session counts, and location if the app grants permission.
+    endpoints:
+      - {host: api.onesignal.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: OneSignal DPA.
+    dpa_url: https://onesignal.com/dpa
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  # ---------------------------------------------------------------- AI model providers
+  - id: openai
+    vendor: OpenAI, L.L.C.
+    packages:
+      pypi: [openai]
+      npm: [openai]
+    imports:
+      python: [openai]
+      typescript: [openai]
+    destination_class: ai_model_provider
+    sink_calls: [create, stream, parse, upload, run, create_and_poll, createAndPoll]
+    setup_calls: [OpenAI, AsyncOpenAI, AzureOpenAI, with_options, close]
+    auto_collected:
+      - Prompts, files and outputs passed. API data is not used for training by default. It is retained for up to 30 days for abuse monitoring unless zero data retention is approved. Responses API objects are stored when store=true, which is the default for that API.
+    endpoints:
+      - {host: api.openai.com, region: US}
+      - {host: eu.api.openai.com, region: "EU (data residency projects)"}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: OpenAI Data Processing Addendum for API customers. Verify residency and retention for the account.
+    dpa_url: https://openai.com/policies/data-processing-addendum/
+    mitigation_hooks:
+      - {name: store, kind: flag, languages: [python, typescript], description: "Set store=false to avoid storing responses."}
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: anthropic
+    vendor: Anthropic, PBC
+    packages:
+      pypi: [anthropic]
+      npm: ["@anthropic-ai/sdk"]
+    imports:
+      python: [anthropic]
+      typescript: ["@anthropic-ai/sdk"]
+    destination_class: ai_model_provider
+    sink_calls: [create, stream, count_tokens, countTokens, upload, batches]
+    setup_calls: [Anthropic, AsyncAnthropic, AnthropicBedrock, AnthropicVertex, with_options]
+    auto_collected:
+      - Prompts, files and outputs passed. Under commercial terms, API inputs and outputs are not used for training by default. Retention follows the commercial terms and any zero data retention agreement.
+    endpoints:
+      - {host: api.anthropic.com, region: US}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Anthropic's commercial terms incorporate a data processing addendum for customer content.
+    dpa_url: https://www.anthropic.com/legal/commercial-terms
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: google-gemini
+    vendor: Google LLC (Gemini API)
+    packages:
+      pypi: [google-generativeai, google-genai]
+      npm: ["@google/generative-ai", "@google/genai"]
+    imports:
+      python: [google.generativeai, google.genai]
+      typescript: ["@google/generative-ai", "@google/genai"]
+    destination_class: ai_model_provider
+    sink_calls: [generate_content, generateContent, generate_content_stream, generateContentStream, send_message, sendMessage,
+                 embed_content, embedContent, count_tokens, countTokens, upload]
+    setup_calls: [configure, GenerativeModel, getGenerativeModel, Client, GoogleGenAI, GoogleGenerativeAI, start_chat, startChat]
+    auto_collected:
+      - Prompts, files and outputs passed.
+      - "Tier matters: under the Gemini API terms, content sent to unpaid services may be used to improve Google products and may be read by human reviewers; paid services are not used that way. Vertex AI follows Google Cloud terms."
+    endpoints:
+      - {host: generativelanguage.googleapis.com, region: US}
+      - {host: "*-aiplatform.googleapis.com", region: Set by Vertex AI location}
+    processor_claims:
+      gdpr_processor: null
+      cpra_service_provider: null
+      notes: Depends on the tier. Unpaid Gemini API use is not a processor relationship for improvement data; paid use and Vertex AI are covered by Google's data processing terms.
+    dpa_url: https://ai.google.dev/gemini-api/terms
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  # ---------------------------------------------------------------- cloud providers
   - id: aws-python
     vendor: Amazon Web Services, Inc.
     packages:
-      pypi: [boto3, botocore, aiobotocore, aioboto3]
+      pypi: [boto3, botocore, aiobotocore, aioboto3, s3fs]
       npm: []
     imports:
-      python: [boto3, botocore, aiobotocore, aioboto3]
+      python: [boto3, botocore, aiobotocore, aioboto3, s3fs]
       typescript: []
     destination_class: cloud_provider
     sink_calls: ["*"]
-    setup_calls: [client, resource, Session, session, Config, get_paginator, get_waiter, generate_presigned_url]
+    setup_calls: [client, resource, Session, session, Config, get_paginator, get_waiter, generate_presigned_url, meta, Bucket, Table]
     auto_collected:
       - Request metadata such as user agent and account identifiers. Payloads contain only what the caller passes.
     endpoints:
@@ -140,6 +697,7 @@ entries:
     dpa_url: https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf
     mitigation_hooks: []
     last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
 
   - id: aws-js
     vendor: Amazon Web Services, Inc.
@@ -163,3 +721,55 @@ entries:
     dpa_url: https://d1.awsstatic.com/legal/aws-dpa/aws-dpa.pdf
     mitigation_hooks: []
     last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: google-cloud
+    vendor: Google LLC (Google Cloud)
+    packages:
+      pypi: ["google-cloud-*", google-api-python-client]
+      npm: ["@google-cloud/*", googleapis]
+    imports:
+      python: [google.cloud, googleapiclient]
+      typescript: ["@google-cloud/*", googleapis]
+    destination_class: cloud_provider
+    sink_calls: ["*"]
+    setup_calls: [Client, from_service_account_json, bucket, blob, collection, document, topic, dataset, table, Storage, PubSub, Firestore, BigQuery, build]
+    auto_collected:
+      - Payloads contain only what the caller passes, plus request metadata.
+    endpoints:
+      - {host: "*.googleapis.com", region: Set per resource location}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Cloud Data Processing Addendum.
+    dpa_url: https://cloud.google.com/terms/data-processing-addendum
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review
+
+  - id: azure
+    vendor: Microsoft Corporation (Azure)
+    packages:
+      pypi: ["azure-*"]
+      npm: ["@azure/*"]
+    imports:
+      python: [azure]
+      typescript: ["@azure/*"]
+    destination_class: cloud_provider
+    sink_calls: ["*"]
+    setup_calls: [BlobServiceClient, from_connection_string, fromConnectionString, get_blob_client, getBlobClient, get_container_client,
+                  getContainerClient, CosmosClient, DefaultAzureCredential, ServiceBusClient, createSender, get_queue_sender]
+    auto_collected:
+      - Payloads contain only what the caller passes, plus request metadata.
+      - Application Insights, if used, collects request telemetry, exceptions and client IP (masked to 0.0.0.0 by default in recent versions).
+    endpoints:
+      - {host: "*.core.windows.net", region: Set per storage account}
+      - {host: "*.azure.com", region: Set per resource}
+    processor_claims:
+      gdpr_processor: true
+      cpra_service_provider: true
+      notes: Microsoft Products and Services Data Protection Addendum.
+    dpa_url: https://www.microsoft.com/licensing/docs/view/Microsoft-Products-and-Services-Data-Protection-Addendum-DPA
+    mitigation_hooks: []
+    last_reviewed: 2026-09-28
+    reviewed_by: initial draft, not legal review

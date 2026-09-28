@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from functools import cache
@@ -84,6 +84,7 @@ class RegistryEntry:
     captures_unhandled_exceptions: bool = False
     notes: str = ""
     references: tuple[str, ...] = field(default_factory=tuple)
+    reviewed_by: str = ""
 
     def matches_import(self, language: str, specifier: str) -> bool:
         return any(
@@ -95,7 +96,7 @@ class RegistryEntry:
         )
 
     def is_sink_call(self, method: str) -> bool:
-        if method in self.setup_calls:
+        if method in self.setup_calls or method.startswith("_"):
             return False
         return "*" in self.sink_calls or method in self.sink_calls
 
@@ -115,6 +116,8 @@ class RegistryEntry:
             "auto_collected": list(self.auto_collected),
             "endpoints": [{"host": e.host, "region": e.region} for e in self.endpoints],
             "dpa_url": self.dpa_url,
+            "last_reviewed": self.last_reviewed.isoformat(),
+            "reviewed_by": self.reviewed_by,
         }
 
     @classmethod
@@ -156,6 +159,7 @@ class RegistryEntry:
                 captures_unhandled_exceptions=bool(data.get("captures_unhandled_exceptions")),
                 notes=str(data.get("notes", "")),
                 references=tuple(data.get("references", [])),
+                reviewed_by=str(data.get("reviewed_by", "")),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise RegistryError(f"bad registry entry {data.get('id')!r}: {exc}") from exc
@@ -203,7 +207,3 @@ def load_registry(path: str | None = None) -> Registry:
     else:
         text = Path(path).read_text(encoding="utf-8")
     return Registry.from_yaml(text)
-
-
-def as_names(values: Sequence[str]) -> tuple[str, ...]:
-    return tuple(values)

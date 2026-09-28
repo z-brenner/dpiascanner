@@ -127,3 +127,23 @@ rules:
       - metavariable-regex:
           metavariable: $M
           regex: ^(send|produce|publish|add|sendToQueue|publishMessage|emit)$
+
+  - id: ts.sink.analytics.gtag
+    languages: [typescript]
+    severity: INFO
+    message: "sink=registry registry=google-analytics"
+    metadata: {kind: sink, family: registry, registry: google-analytics}
+    pattern-either:
+      - pattern: gtag(...)
+      - pattern: window.gtag(...)
+      - pattern: window.dataLayer.push(...)
+      - pattern: dataLayer.push(...)
+
+  - id: ts.sink.ads.meta-pixel-global
+    languages: [typescript]
+    severity: INFO
+    message: "sink=registry registry=meta-pixel"
+    metadata: {kind: sink, family: registry, registry: meta-pixel}
+    pattern-either:
+      - pattern: fbq(...)
+      - pattern: window.fbq(...)

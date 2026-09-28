@@ -275,6 +275,14 @@ class CallTarget:
     def external(self) -> str | None:
         return f"{self.spec}:{self.qual}" if self.spec is not None else None
 
+    def import_path(self, language: str) -> str | None:
+        """The path a registry matches against: python.dotted.path or an npm specifier."""
+        if self.spec is None:
+            return None
+        if language == "python" and self.qual:
+            return f"{self.spec}.{self.qual}".replace("()", "")
+        return self.spec
+
 
 _TYPE_WRAPPERS = re.compile(
     r"^(?:Optional|Annotated|Mapped|Promise|Readonly|Awaitable|Type|type)\[(.*)\]$|^(?:Promise|Readonly)<(.*)>$"

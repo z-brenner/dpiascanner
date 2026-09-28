@@ -20,7 +20,7 @@ from lantern_analysis.taint import Hit, TaintEngine, VEdge
 SNIPPET_CONTEXT = 2
 MAX_SNIPPET_LINES = 16
 MAX_SNIPPET_CHARS = 1600
-ALWAYS_LISTED_FAMILIES = frozenset({"http", "registry", "queue"})
+ALWAYS_LISTED_FAMILIES = frozenset({"http", "registry", "queue", "dependency"})
 
 
 def snippet_for(
@@ -143,6 +143,18 @@ class GraphBuilder:
             "config": config,
             "config_conflict": conflict,
             "registry": sink.registry.summary() if sink.registry is not None else None,
+            "dependency": (
+                {
+                    "package": sink.dependency.name,
+                    "ecosystem": sink.dependency.ecosystem,
+                    "version": sink.dependency.version,
+                    "endpoints": sink.dependency.endpoints,
+                    "evidence": sink.dependency.evidence,
+                    "lockfile": sink.dependency.lockfile,
+                }
+                if sink.dependency is not None
+                else None
+            ),
             "mitigations": [
                 m.to_dict()
                 for m in self.i.mitigations

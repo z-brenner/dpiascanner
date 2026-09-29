@@ -32,3 +32,8 @@ def canary_typescript() -> DataFlowGraph:
 @pytest.fixture(scope="session")
 def clean_python() -> DataFlowGraph:
     return graph_for("clean-python")
+
+
+@pytest.fixture(scope="session")
+def gaps_python() -> DataFlowGraph:
+    return graph_for("gaps-python")

@@ -88,3 +88,8 @@ jobs:
         run: make lint-web
       - name: Test
         run: make test-web
+      - name: Cloudflare Worker bundle (dry run, no credentials)
+        working-directory: apps/web
+        env:
+          WRANGLER_SEND_METRICS: "false"
+        run: pnpm run build && pnpm exec wrangler deploy --dry-run --outdir "$RUNNER_TEMP/worker"

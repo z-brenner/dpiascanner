@@ -35,10 +35,26 @@ services:
       DATABASE_URL: postgresql+psycopg://lantern:lantern@postgres:5432/lantern
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8000:8000"
+      # Loopback only: Docker's published ports bypass host firewalls such as ufw. Behind
+      # Cloudflare, the tunnel below reaches the API on the compose network instead.
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres: {condition: service_healthy}
       redis: {condition: service_healthy}
+
+  # Cloudflare Tunnel to the API for the Cloudflare deployment (docs/deploy-cloudflare.md):
+  # outbound-only, so the host needs no open inbound port. In the tunnel's public hostname
+  # settings, point the API hostname at http://api:8000.
+  # `docker compose --profile app --profile tunnel up -d`
+  cloudflared:
+    profiles: [tunnel]
+    image: cloudflare/cloudflared:latest  # pin a version or digest for production
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      # From .env; cloudflared exits with an error when it is empty.
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    restart: unless-stopped
+    depends_on: [api]
 
   worker:
     profiles: [app]

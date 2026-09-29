@@ -1,0 +1,24 @@
+// Cloudflare Worker that serves the web app and proxies /api/* to the API.
+// Deploy: pnpm --filter @lantern/web cf:deploy (see docs/deploy-cloudflare.md).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lantern-web",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-26",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    // Client routes (/runs/..., /repos) get index.html; unknown files are not 404s.
+    "not_found_handling": "single-page-application",
+    // Only the API proxy runs Worker code. Everything else is a static asset response, which
+    // is where public/_headers applies.
+    "run_worker_first": ["/api/*"]
+  },
+  // API_ORIGIN is set per deployment (dashboard, `--var`, or the deploy workflow) and must
+  // survive deploys that do not pass it. CF_ACCESS_CLIENT_ID and CF_ACCESS_CLIENT_SECRET are
+  // secrets: `wrangler secret put`.
+  "keep_vars": true,
+  // Invocation logs would record request URLs and metadata for every API call. Leave them
+  // off unless you have decided what Cloudflare may retain.
+  "observability": { "enabled": false }
+}

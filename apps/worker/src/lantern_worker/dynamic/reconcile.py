@@ -38,7 +38,7 @@ from lantern_worker.dynamic.canaries import CanaryHit
 from lantern_worker.dynamic.observed import ObservedRequest
 from lantern_worker.dynamic.routes import kind_for_field
 
-NETWORK_FAMILIES = frozenset({"http", "registry", "queue", "dependency"})
+NETWORK_FAMILIES = frozenset({"http", "registry", "queue", "dependency", "email"})
 
 
 def host_matches(pattern: str, host: str) -> bool:

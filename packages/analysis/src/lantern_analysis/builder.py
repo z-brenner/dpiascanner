@@ -21,7 +21,7 @@ from lantern_analysis.taint import Hit, TaintEngine, VEdge
 SNIPPET_CONTEXT = 2
 MAX_SNIPPET_LINES = 16
 MAX_SNIPPET_CHARS = 1600
-ALWAYS_LISTED_FAMILIES = frozenset({"http", "registry", "queue", "dependency"})
+ALWAYS_LISTED_FAMILIES = frozenset({"http", "registry", "queue", "dependency", "email"})
 
 
 def snippet_for(

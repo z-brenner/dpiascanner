@@ -400,6 +400,10 @@ class PythonLowerer(Lowerer):
             cls.bases = [
                 self.expr(b, parent) for b in named_children(supers) if b.type != "keyword_argument"
             ]
+            for kw in named_children(supers):
+                key, value = child(kw, "name"), child(kw, "value")
+                if kw.type == "keyword_argument" and key is not None and value is not None:
+                    cls.keywords[self.raw(key)] = self.raw(value)
         self.module.classes[cid] = cls
         body_fn = Function(
             fid=f"{self.mid}:{name}.<body>",

@@ -23,7 +23,7 @@ Every claim in the report must be traceable to a graph node or edge with file pa
 |---|---|
 | `apps/api` | FastAPI. Jobs, findings, reports, GitHub App webhooks. |
 | `apps/worker` | Python. Clone, parse, graph, classify, verify, report. Each job runs in its own process (or container) with a timeout and a fresh directory that is deleted afterwards; outbound HTTP is limited to an allowlist (GitHub, the decision provider, the package registries). Repository code runs only in the dynamic-verification sandbox. |
-| `apps/web` | React + TypeScript + Vite. Repo picker, run status, report viewer, diff viewer. |
+| `apps/web` | React + TypeScript + Vite. Repo picker, run status, report viewer, diff viewer. Deployed as a Cloudflare Worker that serves the build and proxies `/api` to the API (`docs/deploy-cloudflare.md`). |
 | `packages/analysis` | tree-sitter parsing, Semgrep rule packs, graph builder (networkx), dependency registry integration. |
 | `packages/decisions` | `DecisionProvider` interface, Jev client, stub provider, question set definitions and versions. |
 | `packages/report` | DPIA assembler, GDPR Art. 35 and ICO template mapping, CCPA/CPRA mapping, cited narrative, JSON, Markdown, HTML, and DOCX renderers. |

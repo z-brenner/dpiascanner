@@ -97,8 +97,11 @@ SCALAR_PARAM_DEFAULTS = {
     "File": "upload",
 }
 ORM_BASE_NAMES = frozenset(
-    {"Base", "DeclarativeBase", "Model", "db.Model", "models.Model", "SQLModel", "AbstractBaseUser"}
+    {"Base", "DeclarativeBase", "Model", "db.Model", "models.Model", "AbstractBaseUser"}
 )
+# A SQLModel class is a table only when declared with table=True; otherwise it is a pydantic
+# schema (UserBase, UserCreate) and must not turn reads into ORM sources.
+SQLMODEL_BASES = frozenset({"SQLModel", "sqlmodel.SQLModel"})
 
 
 def expr_key(span: Span) -> tuple[str, int, int]:
@@ -131,6 +134,8 @@ class SinkSpec:
     family: str
     persists: bool = False
     returns_input: bool = False
+    # The receiver is what gets sent, as with message.send() on a built email message.
+    receiver_payload: bool = False
     registry: RegistryEntry | None = None
     method: str | None = None
     event_path: str | None = None
@@ -244,12 +249,14 @@ class Detector:
 
     def _orm_models(self) -> None:
         for cls in self.project.classes.values():
-            bases = {b.text for b in cls.bases}
-            is_model = "__tablename__" in cls.fields or bool(bases & ORM_BASE_NAMES)
-            if not is_model:
-                for c in self.project.mro(cls.cid)[1:]:
-                    if "__tablename__" in self.project.classes[c].fields:
-                        is_model = True
+            chain = [self.project.classes[c] for c in self.project.mro(cls.cid)]
+            if any(b.text in SQLMODEL_BASES for c in chain for b in c.bases):
+                is_model = cls.keywords.get("table") == "True"
+            else:
+                bases = {b.text for b in cls.bases}
+                is_model = bool(bases & ORM_BASE_NAMES) or any(
+                    "__tablename__" in c.fields for c in chain
+                )
             if is_model:
                 cols = [f for f in self.project.field_order(cls.cid) if not f.startswith("_")]
                 self.d.orm_models[cls.name] = cols
@@ -605,6 +612,9 @@ class Detector:
             if match.rule_id not in existing.rule_ids:
                 existing.rule_ids.append(match.rule_id)
             existing.persists = existing.persists or bool(match.metadata.get("persists"))
+            existing.receiver_payload = existing.receiver_payload or bool(
+                match.metadata.get("receiver_payload")
+            )
             return
         spec = SinkSpec(
             cid=call.cid,
@@ -614,6 +624,7 @@ class Detector:
             family=match.family,
             persists=bool(match.metadata.get("persists")),
             returns_input=bool(match.metadata.get("returns_input")),
+            receiver_payload=bool(match.metadata.get("receiver_payload")),
             model=(model[:1].upper() + model[1:]) if model else None,
         )
         registry_id = match.metadata.get("registry")

@@ -18,4 +18,15 @@ marketing pages.
 | `/settings` | Threshold, question set, registry version, decision provider, and limits in use |
 
 `pnpm --filter @lantern/web dev`, `test` (Vitest with Testing Library: the repository
-resolver field, the findings filters, the stage tracker), `lint` (tsc), `build`.
+resolver field, the findings filters, the stage tracker; and the Cloudflare Worker), `lint`
+(tsc, for the app and the Worker), `build`.
+
+## Cloudflare
+
+In production the build is served by a Cloudflare Worker (`wrangler.jsonc`, `worker/`):
+static assets with a single-page-app fallback and the headers in `public/_headers`, and
+`/api/*` proxied to the API origin in `API_ORIGIN` with the prefix removed, so the browser sees
+one origin. Locally: `pnpm --filter @lantern/web build`, then
+`pnpm --filter @lantern/web exec wrangler dev --var API_ORIGIN:http://localhost:8000` with the API
+on port 8000. `cf:deploy` builds and deploys. The full setup,
+including the API host, the tunnel, and Access, is in `docs/deploy-cloudflare.md`.

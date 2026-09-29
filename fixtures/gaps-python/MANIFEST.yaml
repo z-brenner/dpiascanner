@@ -1,7 +1,7 @@
-# Patterns found on real repositories (full-stack-fastapi-template) that the analyzer does
-# not handle yet. Added fixture-first: the benchmark scores this fixture and reports it, but
-# the CI gate does not require it to pass. When a gap is fixed, move its flow out of
-# `known_gap` and let the gate cover it.
+# Patterns found on real repositories (full-stack-fastapi-template). Added fixture-first: a
+# pattern the analyzer does not handle yet goes in with `known_gap` set, which the benchmark
+# reports and the CI gate skips. When the analyzer handles it, remove `known_gap` and the gate
+# covers it like any other flow.
 # Never shown to the analyzer or to the LLM baseline.
 schema_version: 1
 fixture: gaps-python
@@ -18,7 +18,6 @@ flows:
     resolution: resolved
     expected_findings: [personal_data_to_third_party]
     forbidden_findings: [unresolved_flow]
-    known_gap: "No sink rule for smtplib (SMTP.send_message, SMTP.sendmail)."
 
   - id: G02
     description: Signup body written through a session injected with an Annotated[Session, Depends()] alias.
@@ -43,4 +42,34 @@ flows:
     resolution: resolved
     expected_findings: [logging_of_personal_data]
     forbidden_findings: [unresolved_flow]
-    known_gap: "SQLModel reads (session.exec(select(Model))) are not ORM-read sources; SQLModel table=True classes are not recognized as ORM models."
+
+  - id: G04
+    description: >-
+      Member row read through a select statement bound to a variable and filtered with
+      .where(), from a table=True class that inherits its columns from a non-table SQLModel
+      base, then written to a log line (the shape of crud.get_user_by_email in
+      full-stack-fastapi-template).
+    sources:
+      - {file: app/routes.py, line: 39, snippet: "session.exec(statement)", field: full_name, expected_data_category: identifier}
+    sink: {file: app/routes.py, line: 41, snippet: "logger.info(", expected_sink_class: log}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [logging_of_personal_data]
+    forbidden_findings: [unresolved_flow]
+
+  - id: G05
+    description: >-
+      Invite email address and a plaintext password sent with the `emails` package: the message
+      content is the receiver of message.send(), not its argument. The SMTP response logged on
+      the next line is not personal data and must not become a flow. This is the shape of
+      send_email in full-stack-fastapi-template, which mails new users their password.
+    sources:
+      - {file: app/invites.py, line: 15, snippet: "invite_in: Invite", field: email, expected_data_category: contact}
+      - {file: app/invites.py, line: 15, snippet: "invite_in: Invite", field: password, expected_data_category: credentials}
+    sink: {file: app/notify.py, line: 17, snippet: "message.send(to=email_to, smtp=smtp_options)", expected_sink_class: communications}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]

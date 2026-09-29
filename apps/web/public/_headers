@@ -1,0 +1,14 @@
+# Headers for static asset responses on Cloudflare (Workers static assets). Responses from
+# the /api proxy are set in worker/index.ts; this file does not apply to them.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000
+  Cross-Origin-Opener-Policy: same-origin
+
+# Vite fingerprints everything under /assets, so it can be cached for good.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

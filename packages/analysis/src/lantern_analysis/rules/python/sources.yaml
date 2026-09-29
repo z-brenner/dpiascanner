@@ -99,9 +99,21 @@ rules:
       - pattern-either:
           - pattern: $S.query($MODEL, ...)
           - pattern: $S.get($MODEL, ...)
-          - pattern: $S.scalars(select($MODEL, ...))
-          - pattern: $S.execute(select($MODEL, ...))
-          - pattern: $S.scalar(select($MODEL, ...))
+          # select(Model), possibly chained (.where(), .order_by()), passed directly or bound
+          # to a variable first. exec is SQLModel's Session.exec.
+          - patterns:
+              - pattern: $S.$READ(<... select($MODEL, ...) ...>, ...)
+              - metavariable-regex:
+                  metavariable: $READ
+                  regex: ^(scalars|execute|scalar|exec)$
+          - patterns:
+              - pattern-inside: |
+                  $Q = <... select($MODEL, ...) ...>
+                  ...
+              - pattern: $S.$READ($Q, ...)
+              - metavariable-regex:
+                  metavariable: $READ
+                  regex: ^(scalars|execute|scalar|exec)$
       - metavariable-regex:
           metavariable: $S
           regex: (?i)^(.*\.)?(_?session|_?db|sess|db_session|s)$

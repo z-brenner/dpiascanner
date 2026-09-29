@@ -3,14 +3,14 @@
     "clean_false_positives": 0,
     "finding_categories": 1.0,
     "precision_planted": 1.0,
-    "recall_known_gaps": 0.3333333333333333,
     "recall_planted": 1.0,
+    "recall_real_world": 1.0,
     "special_handled": 1.0,
-    "wall_clock_s": 18.67
+    "wall_clock_s": 24.24
   },
   "fixtures": [
     {
-      "duration_s": 2.43,
+      "duration_s": 2.79,
       "finding_categories_correct": 12,
       "fixture": "canary-python",
       "flows": [
@@ -118,7 +118,7 @@
       "true_predictions": 19
     },
     {
-      "duration_s": 6.02,
+      "duration_s": 7.91,
       "finding_categories_correct": 12,
       "fixture": "canary-typescript",
       "flows": [
@@ -226,7 +226,7 @@
       "true_predictions": 19
     },
     {
-      "duration_s": 6.04,
+      "duration_s": 8.05,
       "finding_categories_correct": 1,
       "fixture": "unregistered-sdk-python",
       "flows": [
@@ -246,7 +246,7 @@
       "true_predictions": 2
     },
     {
-      "duration_s": 2.11,
+      "duration_s": 2.81,
       "finding_categories_correct": null,
       "fixture": "clean-python",
       "flows": [],
@@ -257,16 +257,16 @@
       "true_predictions": 0
     },
     {
-      "duration_s": 2.08,
+      "duration_s": 2.68,
       "finding_categories_correct": null,
       "fixture": "gaps-python",
       "flows": [
         {
-          "found": false,
+          "found": true,
           "handled": null,
           "id": "G01",
-          "known_gap": "No sink rule for smtplib (SMTP.send_message, SMTP.sendmail).",
-          "matched": 0,
+          "known_gap": null,
+          "matched": 2,
           "special": null
         },
         {
@@ -278,19 +278,35 @@
           "special": null
         },
         {
-          "found": false,
+          "found": true,
           "handled": null,
           "id": "G03",
-          "known_gap": "SQLModel reads (session.exec(select(Model))) are not ORM-read sources; SQLModel table=True classes are not recognized as ORM models.",
-          "matched": 0,
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "G04",
+          "known_gap": null,
+          "matched": 1,
+          "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "G05",
+          "known_gap": null,
+          "matched": 2,
           "special": null
         }
       ],
-      "group": "known-gaps",
+      "group": "real-world",
       "precision": 1.0,
-      "predictions": 2,
-      "recall": 0.3333333333333333,
-      "true_predictions": 2
+      "predictions": 8,
+      "recall": 1.0,
+      "true_predictions": 8
     }
   ],
   "gate_failures": [],

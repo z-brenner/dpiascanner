@@ -169,6 +169,27 @@ COLLECTION_BUILTINS = frozenset(
     }
 )
 GET_METHODS = frozenset({"get", "pop", "getlist", "setdefault", "getAll"})
+# Library methods called for their effect on the receiver, a local or module variable: the
+# arguments end up inside it. Element adders keep the argument's fields under "*"; merges keep
+# them as they are; content setters (an email body, an attachment) taint the whole object.
+# Deliberately a short list: a blanket "any method taints its receiver" rule would taint
+# clients and sessions and every later result read from them (which is also why `insert`,
+# a database collection method as often as a list one, is not here).
+MUTATOR_METHODS: dict[str, Op | None] = {
+    "append": ("prefix", "*"),
+    "appendleft": ("prefix", "*"),
+    "add": ("prefix", "*"),
+    "push": ("prefix", "*"),
+    "unshift": ("prefix", "*"),
+    "extend": None,
+    "update": None,
+    "set_content": ("collapse",),
+    "set_payload": ("collapse",),
+    "add_alternative": ("collapse",),
+    "add_attachment": ("collapse",),
+    "attach": ("collapse",),
+    "add_header": ("collapse",),
+}
 
 
 @dataclass(frozen=True)
@@ -563,7 +584,8 @@ class TaintEngine:
         sink = self.d.sinks.get(call.cid)
         if sink is not None:
             step = self.step(fn, line, "sink-arg", call.text)
-            self.connect(all_args, f"s|{call.cid}", step, fn.fid)
+            payload = all_args + recv_refs if sink.receiver_payload else all_args
+            self.connect(payload, f"s|{call.cid}", step, fn.fid)
             if sink.returns_input:
                 # ORM create/update returns the written row: {data: {...}} -> row fields.
                 unwrap: Op = ("strip", "data", call.span.file, str(line))
@@ -633,6 +655,12 @@ class TaintEngine:
 
         method = target.method or ""
         # Library, builtin, unknown, and dynamic callees.
+        if method in MUTATOR_METHODS and isinstance(receiver, Name) and all_args:
+            mutate = MUTATOR_METHODS[method]
+            step = self.step(fn, line, "mutate", call.text)
+            for node, _ in recv_refs:
+                if node.startswith(("v|", "g|")):
+                    self.connect(all_args, node, step, fn.fid, extra=(mutate,) if mutate else ())
         if method in NON_PROPAGATING:
             return []
         if (

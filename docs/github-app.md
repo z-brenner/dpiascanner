@@ -24,7 +24,9 @@ Lantern asks for nothing else: no write access to code, no issues, no members, n
 ## Create the app
 
 1. Edit `infra/github-app-manifest.json`. Replace `lantern.example.com` with the web app's
-   origin and `api.lantern.example.com` with the API's origin. Set `public` to `true` only if
+   origin and `api.lantern.example.com` with the API's origin. On Cloudflare
+   (`docs/deploy-cloudflare.md`) the API is served under the site at `/api`, so the webhook
+   URL is `https://lantern.example.com/api/webhooks/github`. Set `public` to `true` only if
    other organizations should be able to install it.
 2. Register it through the manifest flow. Serve this form from any page and submit it
    (for an organization, post to

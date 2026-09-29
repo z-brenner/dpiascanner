@@ -17,6 +17,8 @@ from lantern_worker.store import FileRunStore
 
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
 CANARIES = ["canary-python", "canary-typescript"]
+# Fixtures whose manifests state the expected findings flow by flow.
+MANIFESTED = [*CANARIES, "gaps-python"]
 _RESULTS: dict[str, PipelineResult] = {}
 
 
@@ -58,11 +60,13 @@ def findings_for_flow(result: PipelineResult, flow: dict[str, Any]) -> list[Find
     ]
 
 
-@pytest.mark.parametrize("fixture", CANARIES)
+@pytest.mark.parametrize("fixture", MANIFESTED)
 def test_every_manifest_flow_yields_its_expected_findings(fixture: str) -> None:
     result = result_for(fixture)
     problems = []
     for flow in manifest(fixture)["flows"]:
+        if flow.get("known_gap"):
+            continue
         found = findings_for_flow(result, flow)
         categories = {f.category for f in found}
         missing = set(flow["expected_findings"]) - categories

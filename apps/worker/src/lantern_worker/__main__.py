@@ -1,4 +1,4 @@
-"""Lantern worker.
+"""Katz worker.
 
     python -m lantern_worker serve            consume the run queue
     python -m lantern_worker run-job RUN_ID   process one run (what serve spawns per job)

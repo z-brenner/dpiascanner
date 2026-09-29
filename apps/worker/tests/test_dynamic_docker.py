@@ -106,5 +106,5 @@ def test_sandbox_blocks_egress(sandbox):
     assert probe["udp_dns"].startswith("blocked")
     assert probe["docker_dns"].startswith("blocked")
     # The TLS peer for any host is the sandbox proxy, with a certificate from the run's CA.
-    assert probe["tls_issuer"] == "Lantern dynamic verification"
+    assert probe["tls_issuer"] == "Katz dynamic verification"
     assert {r.host for r in report.observed} >= {"example.com"}

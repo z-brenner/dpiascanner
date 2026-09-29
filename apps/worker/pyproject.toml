@@ -1,7 +1,7 @@
 [project]
 name = "lantern-worker"
 version = "0.1.0"
-description = "Lantern worker: clone, parse, graph, classify, verify, report."
+description = "Katz worker: clone, parse, graph, classify, verify, report."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "lantern-analysis",

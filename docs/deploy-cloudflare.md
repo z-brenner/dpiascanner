@@ -6,7 +6,7 @@ origin. To run the backend on Render instead of your own server, follow
 `docs/deploy-render.md` in place of steps 1–3 below.
 
 ```
-browser ──https──> Cloudflare Worker "lantern-web" (apps/web/wrangler.jsonc)
+browser ──https──> Cloudflare Worker "katz-web" (apps/web/wrangler.jsonc)
                      ├─ /*      static assets (Vite build), SPA fallback, public/_headers
                      └─ /api/*  worker/proxy.ts: strips /api, adds the Access service token
                                    │
@@ -50,7 +50,7 @@ The proxy (`apps/web/worker/proxy.ts`, tested in `worker.test.ts`) does the foll
 - **Added headers.** It sets `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-For`.
   With `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` set, it also adds the Access
   service token. With `API_PROXY_SECRET` set, it sends the API's shared secret in
-  `X-Lantern-Proxy-Secret`, which a Render-hosted API requires (`docs/deploy-render.md`).
+  `X-Katz-Proxy-Secret`, which a Render-hosted API requires (`docs/deploy-render.md`).
 - **Request bodies.** It forwards them byte for byte, so GitHub's webhook signatures still
   verify at the API.
 - **Redirects.** It passes redirects to the browser instead of following them, and rewrites
@@ -85,7 +85,7 @@ cp .env.example .env   # then fill it in: the GitHub App settings and the variab
 
 | Variable | Value |
 |---|---|
-| `LANTERN_WEB_URL` | `https://lantern.example.com`, the site's origin. Used for CORS and report links. |
+| `LANTERN_WEB_URL` | `https://katz.example.com`, the site's origin. Used for CORS and report links. |
 | `LANTERN_COOKIE_SECURE` | `1` (the default). The site is https. |
 | `LANTERN_TOKEN_KEY` | A Fernet key (see `docs/github-app.md`) |
 | `CLOUDFLARE_TUNNEL_TOKEN` | From step 2 |
@@ -116,7 +116,7 @@ Without Access, `api.example.com` is a public API next to the site. With Access,
 Worker can reach it.
 
 1. **Zero Trust → Access → Service Auth → Service Tokens**: create a token, for example
-   `lantern-web`.
+   `katz-web`.
 2. **Access → Applications**: add a self-hosted application for `api.example.com` with a
    policy whose action is **Service Auth** and whose rule is that service token.
 3. Give the Worker the token:
@@ -128,7 +128,7 @@ Worker can reach it.
    ```
 
 To add defense in depth, the API can also verify the `Cf-Access-Jwt-Assertion` header against
-your team's Access keys. Lantern does not do this yet.
+your team's Access keys. Katz does not do this yet.
 
 ### 4. The Worker
 
@@ -136,25 +136,25 @@ For the first deploy, from a machine where you can run `wrangler login`:
 
 ```bash
 pnpm install
-VITE_OPERATOR_CONTACT=lantern@example.org VITE_BACKEND_HOST="Example Hosting (Germany)" \
-  pnpm --filter @lantern/web build:cf
-pnpm --filter @lantern/web exec wrangler deploy --var API_ORIGIN:https://api.example.com
+VITE_OPERATOR_CONTACT=katz@example.org VITE_BACKEND_HOST="Example Hosting (Germany)" \
+  pnpm --filter @katz/web build:cf
+pnpm --filter @katz/web exec wrangler deploy --var API_ORIGIN:https://api.example.com
 ```
 
 `build:cf` is the public demo build. It shows the demo notice described below; a plain `build`
 does not.
 
 `API_ORIGIN` persists across deploys, because `keep_vars` is set in `wrangler.jsonc`. You can
-also set it in the dashboard, under **Workers → lantern-web → Settings → Variables**.
+also set it in the dashboard, under **Workers → katz-web → Settings → Variables**.
 
-The site is now at `https://lantern-web.<your-subdomain>.workers.dev`. For your own domain,
+The site is now at `https://katz-web.<your-subdomain>.workers.dev`. For your own domain,
 the zone must be on Cloudflare. Either add this to `wrangler.jsonc`:
 
 ```jsonc
-"routes": [{ "pattern": "lantern.example.com", "custom_domain": true }]
+"routes": [{ "pattern": "katz.example.com", "custom_domain": true }]
 ```
 
-or add the domain in the dashboard, under **Workers → lantern-web → Settings → Domains &
+or add the domain in the dashboard, under **Workers → katz-web → Settings → Domains &
 Routes**.
 
 **Continuous deploys.** `.github/workflows/deploy-web.yml` deploys after `ci` passes on a push
@@ -173,7 +173,7 @@ It never deploys code from pull requests: it checks that the CI run came from a 
 repository, not only that the branch was named `main`. Anyone with write access can run it by
 hand on any branch.
 
-To roll back: `pnpm exec wrangler rollback`, or pick a version under **Workers → lantern-web →
+To roll back: `pnpm exec wrangler rollback`, or pick a version under **Workers → katz-web →
 Deployments**.
 
 ### 5. The GitHub App
@@ -182,19 +182,19 @@ With a single origin, every GitHub App URL points at the site:
 
 | Setting | Value |
 |---|---|
-| Homepage URL | `https://lantern.example.com` |
-| Callback URL | `https://lantern.example.com/auth/github/callback` |
-| Webhook URL | `https://lantern.example.com/api/webhooks/github` |
+| Homepage URL | `https://katz.example.com` |
+| Callback URL | `https://katz.example.com/auth/github/callback` |
+| Webhook URL | `https://katz.example.com/api/webhooks/github` |
 
-In `infra/github-app-manifest.json`, this means replacing `https://api.lantern.example.com`
-with `https://lantern.example.com/api`, not with the API's own hostname. Behind Access, the
+In `infra/github-app-manifest.json`, this means replacing `https://api.katz.example.com`
+with `https://katz.example.com/api`, not with the API's own hostname. Behind Access, the
 API's hostname does not accept GitHub's requests.
 
 ### 6. Check it
 
 ```bash
-curl -sI https://lantern.example.com/ | grep -i content-security-policy
-curl -s https://lantern.example.com/api/healthz          # {"status":"ok"}
+curl -sI https://katz.example.com/ | grep -i content-security-policy
+curl -s https://katz.example.com/api/healthz          # {"status":"ok"}
 curl -s -o /dev/null -w '%{http_code}\n' https://api.example.com/healthz   # 302 or 403: Access is on
 ```
 
@@ -214,7 +214,7 @@ The Cloudflare build (`build:cf`, which reads `apps/web/.env.cloudflare`) tells 
 they are using:
 
 - **A banner on every page:** an experimental demo, not a product; Cloudflare processes the
-  traffic as a data processor; for real work, host Lantern yourself.
+  traffic as a data processor; for real work, host Katz yourself.
 - **A "Before you install" box on the Connect page,** before anyone grants the GitHub App
   access to their repositories.
 - **An About page (`/about`).** It covers:
@@ -272,7 +272,7 @@ For each deployment, decide these deliberately rather than by default:
   its DPA (Art. 46(2)(c)). Check Cloudflare's current entry on the DPF list rather than
   relying on this document. Keeping processing in the EU (Regional Services, Customer Metadata
   Boundary) is an Enterprise add-on.
-- **Your own promises.** If Lantern is sold as "your code never leaves our infrastructure",
+- **Your own promises.** If Katz is sold as "your code never leaves our infrastructure",
   a CDN that terminates TLS contradicts that. Putting the host behind the tunnel does not
   change it. The alternative is to serve `apps/web/dist` from the host and point DNS at the
   host directly, without Cloudflare's proxy. You keep the same single-origin layout and give

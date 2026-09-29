@@ -99,14 +99,20 @@ export function ErrorText({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The Lantern mark: a small lantern whose light is the accent. */
+/** The Katz mark: a cat's eye, which sees in the dark; the pupil is the accent. */
 export function Mark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden fill="none">
-      <path d="M9 3h6M12 3v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <rect x="6.5" y="5" width="11" height="14" rx="3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M8 21h8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M12 9.2c1.5 1.4 2 2.5 2 3.5a2 2 0 1 1-4 0c0-1 .5-2.1 2-3.5Z" fill="var(--accent)" />
+      <path
+        d="M2.75 12c2.5-4.1 5.6-6.15 9.25-6.15S18.75 7.9 21.25 12c-2.5 4.1-5.6 6.15-9.25 6.15S5.25 16.1 2.75 12Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 7.4c1.25 1.35 1.85 2.9 1.85 4.6s-.6 3.25-1.85 4.6c-1.25-1.35-1.85-2.9-1.85-4.6s.6-3.25 1.85-4.6Z"
+        fill="var(--accent)"
+      />
     </svg>
   );
 }

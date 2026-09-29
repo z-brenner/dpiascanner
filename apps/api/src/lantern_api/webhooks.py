@@ -4,7 +4,7 @@
 - ``push`` to the default branch: enqueue a full run.
 - ``pull_request`` opened, reopened, or synchronize: enqueue an incremental run on the
   changed files and their graph neighbors from the latest completed base-branch run (a full
-  run if there is none), and open a queued check run so the PR shows Lantern immediately.
+  run if there is none), and open a queued check run so the PR shows Katz immediately.
   The worker completes the check and upserts the single PR comment.
 
 Deliveries are verified with X-Hub-Signature-256 and de-duplicated by X-GitHub-Delivery.
@@ -150,7 +150,7 @@ def handle_pull_request(svc: Services, payload: dict[str, Any]) -> dict[str, Any
             status="queued",
             output={
                 "title": "Queued",
-                "summary": "Lantern will post a findings diff when the run completes.",
+                "summary": "Katz will post a findings diff when the run completes.",
             },
         )
     run = Run(

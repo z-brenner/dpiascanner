@@ -1,4 +1,4 @@
-"""Lower TypeScript (and JavaScript) source to the Lantern IR with tree-sitter."""
+"""Lower TypeScript (and JavaScript) source to the Katz IR with tree-sitter."""
 
 from __future__ import annotations
 

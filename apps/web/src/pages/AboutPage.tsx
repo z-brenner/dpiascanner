@@ -20,16 +20,16 @@ export function AboutPage() {
   const source = sourceUrl();
   return (
     <article className="max-w-3xl space-y-10 text-[15px] leading-7 text-ink-2">
-      <PageHeader eyebrow={demo ? "Demo instance" : "About"} title={demo ? "About this demo" : "About Lantern"} />
+      <PageHeader eyebrow={demo ? "Demo instance" : "About"} title={demo ? "About this demo" : "About Katz"} />
       {demo && (
         <section className="space-y-3">
           <p>
-            This is an experiment, run by one person so others can try Lantern. It is not a product: there is no
+            This is an experiment, run by one person so others can try Katz. It is not a product: there is no
             support, no uptime commitment, and it may be reset or shut down without notice.
           </p>
           <div className="card p-5">
             <p className="text-ink">
-              <strong className="font-semibold">If you want to use Lantern seriously, host it yourself.</strong> The
+              <strong className="font-semibold">If you want to use Katz seriously, host it yourself.</strong> The
               code is open source under the Apache 2.0 license, and you can run it on infrastructure you control, so
               your code and results never pass through anyone else.
             </p>
@@ -46,9 +46,9 @@ export function AboutPage() {
       )}
 
       <section className="space-y-3">
-        <H2>What Lantern does, and what it is not</H2>
+        <H2>What Katz does, and what it is not</H2>
         <p>
-          Lantern reads a repository at one commit, traces personal data through the code, and drafts a data protection
+          Katz reads a repository at one commit, traces personal data through the code, and drafts a data protection
           impact assessment under GDPR Article 35, with a CCPA/CPRA section. Every statement in a report links to the
           lines of code it rests on.
         </p>
@@ -207,7 +207,7 @@ function DemoDataNotice({ demo, config }: { demo: DemoSettings; config: Config |
             {jev ? (
               <>
                 <strong className="font-semibold text-ink">TypeSafe</strong> classifies redacted, length-limited
-                summaries of the data flows Lantern finds, with its Jev model.
+                summaries of the data flows Katz finds, with its Jev model.
               </>
             ) : (
               "No AI model receives your code: classification runs on this demo's server with deterministic rules."

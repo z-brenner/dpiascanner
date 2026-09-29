@@ -17,7 +17,7 @@ export function DemoBanner() {
         <strong className="font-medium text-ink">Experimental demo, not a product.</strong>{" "}
         {config?.public_repos_only && "Public repositories only. "}
         {retention && `Scans are deleted after ${retention}. `}
-        Cloudflare processes this site's traffic as a data processor. To use Lantern for real work, host it yourself.{" "}
+        Cloudflare processes this site's traffic as a data processor. To use Katz for real work, host it yourself.{" "}
         <Link to="/about" className="link text-ink">
           Details
         </Link>
@@ -59,7 +59,7 @@ export function BeforeYouInstall() {
         <Item>
           For private code or real assessments,{" "}
           <a className="link text-ink" href={demo.sourceUrl}>
-            host Lantern yourself
+            host Katz yourself
           </a>
           .
         </Item>

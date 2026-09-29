@@ -52,13 +52,13 @@ describe("RepoResolverField", () => {
         status: "inaccessible",
         scannable: false,
         full_name: "acme/secret",
-        reason: "Private repository that the Lantern app is not installed on.",
+        reason: "Private repository that the Katz app is not installed on.",
         install_url: "https://github.com/apps/lantern-dpia/installations/new",
       }),
     );
     render(<RepoResolverField resolve={resolve} onRun={vi.fn()} />);
     await userEvent.type(screen.getByLabelText("Repository URL or owner/repo"), "acme/secret{enter}");
-    const link = await screen.findByRole("link", { name: "Install the Lantern app" });
+    const link = await screen.findByRole("link", { name: "Install the Katz app" });
     expect(link).toHaveAttribute("href", "https://github.com/apps/lantern-dpia/installations/new");
     expect(screen.queryByRole("button", { name: "Run" })).not.toBeInTheDocument();
     expect(screen.getByText(/not installed/)).toBeInTheDocument();

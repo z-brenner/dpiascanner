@@ -140,7 +140,7 @@ def resolve(svc: Services, user: User, text: str) -> Resolution:
             repo=ref.name,
             private=True,
             default_branch=data.get("default_branch"),
-            reason="Private repository that the Lantern app is not installed on. Add it to the "
+            reason="Private repository that the Katz app is not installed on. Add it to the "
             "app's installation to scan it.",
             install_url=install_url,
         )
@@ -166,7 +166,7 @@ def _private_not_allowed(
         repo=ref.name,
         private=True,
         default_branch=default_branch,
-        reason="This instance scans public repositories only. Host Lantern yourself to scan "
+        reason="This instance scans public repositories only. Host Katz yourself to scan "
         "private code.",
     )
 

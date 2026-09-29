@@ -1,4 +1,4 @@
-# Render Blueprint for Lantern's API, worker, Postgres, and queue (docs/deploy-render.md).
+# Render Blueprint for Katz's API, worker, Postgres, and queue (docs/deploy-render.md).
 # The web app runs on Cloudflare Workers (docs/deploy-cloudflare.md) and reaches the API through
 # its /api proxy, which sends LANTERN_PROXY_SECRET; the API refuses everything else except
 # /healthz. Settings here are for the public demo: public repositories only, everything
@@ -11,7 +11,7 @@
 # is deleted 30 days after creation. Workers have no free plan.
 
 envVarGroups:
-  - name: lantern-shared
+  - name: katz-shared
     envVars:
       # Both services decrypt the same stored tokens, so they share one generated key.
       - key: LANTERN_TOKEN_KEY
@@ -34,7 +34,7 @@ envVarGroups:
 
 services:
   - type: web
-    name: lantern-api
+    name: katz-api
     runtime: docker
     region: frankfurt
     plan: 0.5c-512mb
@@ -44,13 +44,13 @@ services:
     healthCheckPath: /healthz
     autoDeployTrigger: checksPass
     envVars:
-      - fromGroup: lantern-shared
+      - fromGroup: katz-shared
       - key: DATABASE_URL # postgresql://…; the app adds the psycopg driver itself
-        fromDatabase: { name: lantern-db, property: connectionString }
+        fromDatabase: { name: katz-db, property: connectionString }
       - key: REDIS_URL
-        fromService: { type: keyvalue, name: lantern-queue, property: connectionString }
+        fromService: { type: keyvalue, name: katz-queue, property: connectionString }
       # Filled in once, when the Blueprint is first created.
-      - { key: LANTERN_WEB_URL, sync: false } # the site's origin, e.g. https://lantern.example.com
+      - { key: LANTERN_WEB_URL, sync: false } # the site's origin, e.g. https://katz.example.com
       - { key: GITHUB_APP_ID, sync: false }
       - { key: GITHUB_APP_SLUG, sync: false }
       - { key: GITHUB_APP_PRIVATE_KEY, sync: false }
@@ -59,7 +59,7 @@ services:
       - { key: GITHUB_CLIENT_SECRET, sync: false }
 
   - type: worker
-    name: lantern-worker
+    name: katz-worker
     runtime: docker
     region: frankfurt
     # Measured on full-stack-fastapi-template (14k lines): 70 MB for the analyzer and 130 MB
@@ -71,28 +71,28 @@ services:
     autoDeployTrigger: checksPass
     maxShutdownDelaySeconds: 300
     envVars:
-      - fromGroup: lantern-shared
+      - fromGroup: katz-shared
       - key: DATABASE_URL
-        fromDatabase: { name: lantern-db, property: connectionString }
+        fromDatabase: { name: katz-db, property: connectionString }
       - key: REDIS_URL
-        fromService: { type: keyvalue, name: lantern-queue, property: connectionString }
+        fromService: { type: keyvalue, name: katz-queue, property: connectionString }
       # The worker posts check runs and PR comments as the GitHub App, and links to the site.
       - key: GITHUB_APP_ID
-        fromService: { type: web, name: lantern-api, envVarKey: GITHUB_APP_ID }
+        fromService: { type: web, name: katz-api, envVarKey: GITHUB_APP_ID }
       - key: GITHUB_APP_PRIVATE_KEY
-        fromService: { type: web, name: lantern-api, envVarKey: GITHUB_APP_PRIVATE_KEY }
+        fromService: { type: web, name: katz-api, envVarKey: GITHUB_APP_PRIVATE_KEY }
       - key: LANTERN_WEB_URL
-        fromService: { type: web, name: lantern-api, envVarKey: LANTERN_WEB_URL }
+        fromService: { type: web, name: katz-api, envVarKey: LANTERN_WEB_URL }
 
   - type: keyvalue
-    name: lantern-queue
+    name: katz-queue
     region: frankfurt
     plan: free # 25 MB, in memory: queued runs are lost on a restart; 256mb ($10) persists
     maxmemoryPolicy: noeviction # a job queue must not drop entries
     ipAllowList: [] # private network only
 
 databases:
-  - name: lantern-db
+  - name: katz-db
     region: frankfurt
     plan: 0.1c-256mb
     databaseName: lantern

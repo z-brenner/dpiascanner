@@ -11,7 +11,7 @@ from lantern_analysis.analyze import AnalysisOptions, analyze_repo
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build Lantern's personal-data flow graph.")
+    parser = argparse.ArgumentParser(description="Build Katz's personal-data flow graph.")
     parser.add_argument("repo", type=Path)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--commit", default="")

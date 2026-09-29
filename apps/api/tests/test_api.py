@@ -108,7 +108,7 @@ def test_config_is_public_and_settings_need_a_session(
 ) -> None:
     monkeypatch.delenv("LANTERN_DECISION_PROVIDER", raising=False)
     config = client.get("/config").json()
-    assert config["install_url"].endswith("/apps/lantern-dpia/installations/new")
+    assert config["install_url"].endswith("/apps/katz-dpia/installations/new")
     # The web app's data notice says whether classification leaves the server.
     assert config["decision_provider"] == "stub" and config["session_ttl_hours"] == 24 * 7
     monkeypatch.setenv("LANTERN_DECISION_PROVIDER", "jev")
@@ -169,7 +169,7 @@ def test_resolve_public_inaccessible_and_invalid(signed_in: TestClient) -> None:
     )
     private = signed_in.post("/repos/resolve", json={"input": "acme/secret-tool"}).json()
     assert private["status"] == "inaccessible" and not private["scannable"]
-    assert private["install_url"] == "https://github.com/apps/lantern-dpia/installations/new"
+    assert private["install_url"] == "https://github.com/apps/katz-dpia/installations/new"
     assert "not installed" in private["reason"]
     missing = signed_in.post("/repos/resolve", json={"input": "nobody/nothing"}).json()
     assert missing["status"] == "inaccessible" and "not found" in missing["reason"]

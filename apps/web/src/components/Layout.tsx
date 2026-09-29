@@ -24,9 +24,9 @@ export function Layout() {
         <DemoBanner />
         <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
-            <Link to="/" className="flex items-center gap-2 text-ink" aria-label="Lantern home">
+            <Link to="/" className="flex items-center gap-2 text-ink" aria-label="Katz home">
               <Mark className="h-6 w-6" />
-              <span className="display text-[22px] leading-none">Lantern</span>
+              <span className="display text-[22px] leading-none">Katz</span>
             </Link>
             <nav className="flex items-center gap-0.5 text-sm" aria-label="Main">
               <NavLink to="/repos" className={nav}>
@@ -55,7 +55,7 @@ export function Layout() {
         <footer className="border-t border-line">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-5 text-xs text-ink-3 sm:px-6">
             <span className="flex items-center gap-1.5 text-ink-2">
-              <Mark className="h-4 w-4" /> Lantern
+              <Mark className="h-4 w-4" /> Katz
             </span>
             <span>Drafts DPIAs from source code for review by a qualified person. It is not legal advice.</span>
             <span className="flex gap-3 sm:ml-auto">

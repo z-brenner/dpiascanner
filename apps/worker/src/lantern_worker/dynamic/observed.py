@@ -1,4 +1,4 @@
-"""Recorded outbound requests, reduced to what Lantern keeps.
+"""Recorded outbound requests, reduced to what Katz keeps.
 
 Both recorders (the mitmproxy addon in the sandbox and ``fixtures/mock-server``) write the
 same raw JSONL capture: method, host, path, query, headers, and the base64 body. The raw

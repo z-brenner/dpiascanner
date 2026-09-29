@@ -7,7 +7,7 @@
 
 export interface Env {
   ASSETS: Fetcher;
-  /** Origin of the FastAPI service, such as https://api.lantern.example.com. */
+  /** Origin of the FastAPI service, such as https://api.katz.example.com. */
   API_ORIGIN?: string;
   /** Cloudflare Access service token, when the API hostname sits behind Access. */
   CF_ACCESS_CLIENT_ID?: string;
@@ -16,7 +16,7 @@ export interface Env {
   API_PROXY_SECRET?: string;
 }
 
-export const PROXY_SECRET_HEADER = "X-Lantern-Proxy-Secret";
+export const PROXY_SECRET_HEADER = "X-Katz-Proxy-Secret";
 
 export const API_PREFIX = "/api";
 
@@ -36,7 +36,7 @@ const DROPPED_REQUEST_HEADERS = new Set([
   "x-forwarded-for",
   "x-forwarded-host",
   "x-forwarded-proto",
-  "x-lantern-proxy-secret",
+  "x-katz-proxy-secret",
 ]);
 
 export function isApiPath(pathname: string): boolean {

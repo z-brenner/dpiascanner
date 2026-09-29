@@ -15,7 +15,7 @@ const STEPS: [string, string, string][] = [
   ],
   [
     "Scan",
-    "Lantern builds a data-flow graph of personal data.",
+    "Katz builds a data-flow graph of personal data.",
     "Sources, transformations, and destinations, traced deterministically, then classified.",
   ],
   [
@@ -45,7 +45,7 @@ export function ConnectPage() {
             Know where personal data goes, <em className="text-ink-2">line by line.</em>
           </h1>
           <p className="max-w-xl text-[17px] leading-relaxed text-ink-2">
-            Lantern reads a repository at one commit, traces personal data from where it enters to where it leaves, and
+            Katz reads a repository at one commit, traces personal data from where it enters to where it leaves, and
             drafts a GDPR Article 35 assessment, with a CCPA/CPRA section, in which every statement links to the code it
             rests on.
           </p>

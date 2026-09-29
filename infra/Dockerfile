@@ -1,4 +1,4 @@
-# One image for the Lantern API and worker (different commands).
+# One image for the Katz API and worker (different commands).
 #   docker build -f infra/Dockerfile -t lantern:latest .
 FROM python:3.12-slim
 

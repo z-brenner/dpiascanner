@@ -38,7 +38,7 @@ describe("demo notice", () => {
         <AboutPage />
       </>,
     );
-    expect(await screen.findByRole("heading", { name: "About Lantern" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "About Katz" })).toBeInTheDocument();
     expect(screen.getByText("They are not legal advice.")).toBeInTheDocument();
     expect(screen.queryByRole("note", { name: "Demo notice" })).toBeNull();
     expect(screen.queryByText(/Cloudflare/)).toBeNull();
@@ -60,7 +60,7 @@ describe("demo notice", () => {
     expect(banner).toHaveTextContent("Cloudflare processes this site's traffic as a data processor.");
     expect(banner).toHaveTextContent("host it yourself");
     expect(screen.getByRole("heading", { name: "Before you install" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "host Lantern yourself" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "host Katz yourself" })).toHaveAttribute(
       "href",
       "https://github.com/z-brenner/dpiascanner",
     );

@@ -51,7 +51,7 @@ class Settings:
     github_webhook_secret: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
-    github_app_slug: str = "lantern-dpia"
+    github_app_slug: str = "katz-dpia"
     github_api_url: str = "https://api.github.com"
     github_web_url: str = "https://github.com"
     token_key: str = ""  # Fernet key for tokens at rest
@@ -68,7 +68,7 @@ class Settings:
     retention_hours: int = 0
     # Refuse private repositories (the public demo).
     public_repos_only: bool = False
-    # When set, every request except /healthz must carry it in X-Lantern-Proxy-Secret, so only
+    # When set, every request except /healthz must carry it in X-Katz-Proxy-Secret, so only
     # the web app's proxy can reach an API whose hostname is public (Render).
     proxy_secret: str = ""
 
@@ -85,7 +85,7 @@ class Settings:
             github_webhook_secret=_env("GITHUB_WEBHOOK_SECRET"),
             github_client_id=_env("GITHUB_CLIENT_ID"),
             github_client_secret=_env("GITHUB_CLIENT_SECRET"),
-            github_app_slug=_env("GITHUB_APP_SLUG", "lantern-dpia"),
+            github_app_slug=_env("GITHUB_APP_SLUG", "katz-dpia"),
             github_api_url=_env("GITHUB_API_URL", "https://api.github.com"),
             github_web_url=_env("GITHUB_WEB_URL", "https://github.com"),
             token_key=_env("LANTERN_TOKEN_KEY"),

@@ -5,10 +5,10 @@ Instead of a server running Docker Compose behind a Cloudflare Tunnel
 on Render from `render.yaml`. The web app still runs on Cloudflare Workers.
 
 ```
-browser ──> Cloudflare Worker "lantern-web" ──/api/* + X-Lantern-Proxy-Secret──> Render
-                                                   lantern-api (web service, Docker)
-                                                   lantern-worker (background worker)
-                                                   lantern-db (Postgres) · lantern-queue (Key Value)
+browser ──> Cloudflare Worker "katz-web" ──/api/* + X-Katz-Proxy-Secret──> Render
+                                                   katz-api (web service, Docker)
+                                                   katz-worker (background worker)
+                                                   katz-db (Postgres) · katz-queue (Key Value)
 ```
 
 ## What changes compared with your own server
@@ -26,10 +26,10 @@ The plans in `render.yaml` were checked in September 2026.
 
 | Resource | Plan | Price | Cheaper option and its cost |
 |---|---|---|---|
-| `lantern-api` | `0.5c-512mb` | $7/mo | `free`: it sleeps after 15 idle minutes and takes about a minute to wake. The first visitor waits, and GitHub webhooks, which time out after 10 s, fail while it sleeps. |
-| `lantern-worker` | `0.5c-512mb` | $7/mo | None: workers have no free plan. Measured on a 14k-line repository, the analyzer peaked at 70 MB and Semgrep at 130 MB. |
-| `lantern-db` | `0.1c-256mb` | $6/mo | `free`: deleted 30 days after creation, with no backups. |
-| `lantern-queue` | `free` | $0 | Already free. It is in memory, so a restart loses queued runs. `256mb` ($10) persists. |
+| `katz-api` | `0.5c-512mb` | $7/mo | `free`: it sleeps after 15 idle minutes and takes about a minute to wake. The first visitor waits, and GitHub webhooks, which time out after 10 s, fail while it sleeps. |
+| `katz-worker` | `0.5c-512mb` | $7/mo | None: workers have no free plan. Measured on a 14k-line repository, the analyzer peaked at 70 MB and Semgrep at 130 MB. |
+| `katz-db` | `0.1c-256mb` | $6/mo | `free`: deleted 30 days after creation, with no backups. |
+| `katz-queue` | `free` | $0 | Already free. It is in memory, so a restart loses queued runs. `256mb` ($10) persists. |
 
 ## Steps
 
@@ -37,16 +37,16 @@ The plans in `render.yaml` were checked in September 2026.
    `docs/deploy-cloudflare.md` step 5; the webhook URL is `https://<site>/api/webhooks/github`.
 2. **Blueprint.** In Render, go to **New → Blueprint** and pick this repository. Render reads
    `render.yaml` and asks once for the values marked `sync: false`:
-   - `LANTERN_WEB_URL`: the site's origin, for example `https://lantern.example.com`;
+   - `LANTERN_WEB_URL`: the site's origin, for example `https://katz.example.com`;
    - `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_APP_PRIVATE_KEY` (the PEM, with newlines or
      `\n`), `GITHUB_WEBHOOK_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
 
    The worker copies the App settings and `LANTERN_WEB_URL` from the API. After the first
    deploy, confirm they appear under the worker's **Environment** tab.
 3. **Connect the Worker to the API.**
-   - Copy `LANTERN_PROXY_SECRET` from the `lantern-shared` environment group.
+   - Copy `LANTERN_PROXY_SECRET` from the `katz-shared` environment group.
    - In `apps/web`, run `pnpm exec wrangler secret put API_PROXY_SECRET` and paste it.
-   - Set `API_ORIGIN` to `https://lantern-api.onrender.com`, or to your custom domain for the
+   - Set `API_ORIGIN` to `https://katz-api.onrender.com`, or to your custom domain for the
      API. Use the `LANTERN_API_ORIGIN` repository variable, or `--var` on a manual deploy
      (`docs/deploy-cloudflare.md` step 4).
 4. **Name Render as a processor.** Set the `LANTERN_BACKEND_HOST` repository variable to
@@ -59,8 +59,8 @@ The plans in `render.yaml` were checked in September 2026.
 ## Check it
 
 ```bash
-curl -s https://lantern-api.onrender.com/healthz            # {"status":"ok"}
-curl -s -o /dev/null -w '%{http_code}\n' https://lantern-api.onrender.com/config   # 404: secret required
+curl -s https://katz-api.onrender.com/healthz            # {"status":"ok"}
+curl -s -o /dev/null -w '%{http_code}\n' https://katz-api.onrender.com/config   # 404: secret required
 curl -s https://<site>/api/config | python -m json.tool      # through the Worker
 ```
 
@@ -79,7 +79,7 @@ The last command should show:
 
 ## The demo settings
 
-The `lantern-shared` group in `render.yaml` sets:
+The `katz-shared` group in `render.yaml` sets:
 
 | Variable | Value | Effect |
 |---|---|---|

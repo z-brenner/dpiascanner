@@ -77,7 +77,7 @@ DESTINATION_LABELS = {
     "payment_processor": "a payment processor",
     "communications": "a communications service",
     "ai_model_provider": "an AI model provider",
-    "unknown_third_party": "a third party that is not in Lantern's SDK registry",
+    "unknown_third_party": "a third party that is not in Katz's SDK registry",
     "cross_border": "a destination in another jurisdiction",
 }
 PURPOSE_LABELS = {

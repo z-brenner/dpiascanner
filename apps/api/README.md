@@ -36,5 +36,5 @@ The public demo's switches:
 - `LANTERN_PUBLIC_REPOS_ONLY`: the resolver, `POST /runs`, and webhooks refuse private
   repositories.
 - `LANTERN_PROXY_SECRET`: every path except `/healthz` requires the
-  `X-Lantern-Proxy-Secret` header. It is for an API whose hostname is public, as on Render
+  `X-Katz-Proxy-Secret` header. It is for an API whose hostname is public, as on Render
   (`docs/deploy-render.md`).

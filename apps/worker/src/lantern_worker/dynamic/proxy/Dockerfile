@@ -1,4 +1,4 @@
-# Lantern sandbox proxy: DNS that answers every name with one address, a NAT rule that sends
+# Katz sandbox proxy: DNS that answers every name with one address, a NAT rule that sends
 # all TCP to mitmproxy, and a mitmproxy addon that records each request and answers it
 # itself. Nothing is ever forwarded upstream.
 FROM python:3.12-slim

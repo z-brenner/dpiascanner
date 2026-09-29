@@ -1,4 +1,4 @@
-# Lantern third-party SDK registry.
+# Katz third-party SDK registry.
 #
 # Entries are evidence, not verdicts. The analyzer uses them to create sink nodes with known
 # semantics and to detect mitigation hooks; the decision layer still classifies what the
@@ -46,7 +46,7 @@ entries:
     captures_unhandled_exceptions: true
     auto_collected:
       - Exception type, message, and stack trace for captured and unhandled errors.
-      - "Stack-frame local variables (Python include_local_variables defaults to true). Observed in Lantern fixtures with sentry-sdk 2.71: the full request model, including email and date of birth, was sent with send_default_pii=False."
+      - "Stack-frame local variables (Python include_local_variables defaults to true). Observed in Katz fixtures with sentry-sdk 2.71: the full request model, including email and date of birth, was sent with send_default_pii=False."
       - "HTTP request data for framework integrations: URL, method, headers with a default denylist, and request body (Python max_request_body_size defaults to medium). Observed: the JSON request body was sent with send_default_pii=False."
       - Breadcrumbs from logging calls and outgoing HTTP requests.
       - With send_default_pii or sendDefaultPii enabled, user IP address, cookies, and user identity from the framework's auth layer.

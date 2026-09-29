@@ -19,7 +19,7 @@ from lantern_platform.config import Settings
 from lantern_platform.retention import SWEEP_INTERVAL, purge_expired
 
 log = logging.getLogger("lantern.api")
-PROXY_HEADER = "X-Lantern-Proxy-Secret"
+PROXY_HEADER = "X-Katz-Proxy-Secret"
 OPEN_PATHS = frozenset({"/healthz"})
 
 
@@ -52,7 +52,7 @@ def create_app(services: Services) -> FastAPI:
         yield
         stop.set()
 
-    app = FastAPI(title="Lantern API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Katz API", version="0.1.0", lifespan=lifespan)
     app.state.services = services
     app.add_middleware(
         CORSMiddleware,

@@ -1,7 +1,7 @@
 [project]
 name = "lantern-workspace"
 version = "0.1.0"
-description = "Lantern: repo-grounded DPIA scanner (workspace root, not a distributable package)."
+description = "Katz: repo-grounded DPIA scanner (workspace root, not a distributable package)."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "lantern-analysis",
@@ -70,7 +70,7 @@ exclude = ["^fixtures/", "^apps/web/", "/tests/", "/dynamic/proxy/", "/dynamic/i
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib -ra"
 markers = [
-    "dynamic: runs Lantern's fixtures against fixtures/mock-server (needs uv and npm; ~1 min)",
+    "dynamic: runs Katz's fixtures against fixtures/mock-server (needs uv and npm; ~1 min)",
     "docker: runs the Docker sandbox (needs a Docker daemon and LANTERN_DOCKER_TESTS=1)",
 ]
 testpaths = ["packages", "apps/api", "apps/worker", "fixtures/mock-server", "benchmarks"]

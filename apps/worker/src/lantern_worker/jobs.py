@@ -262,7 +262,7 @@ def _fail_check(deps: WorkerDeps, run: Run, check_run_id: int | None, stage: str
         conclusion="neutral",
         completed_at=utcnow().isoformat(),
         output={
-            "title": "Lantern could not complete this run",
+            "title": "Katz could not complete this run",
             "summary": f"The run failed during the {stage} stage. No findings were recorded.",
         },
     )

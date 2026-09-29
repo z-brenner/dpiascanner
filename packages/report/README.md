@@ -81,8 +81,8 @@ Sections follow GDPR Art. 35(7) and the ICO DPIA template:
    cannot answer, each linked to the findings that raise it.
 5. Risk register (Art. 35(7)(c)): likelihood is remote (unreachable), possible (static
    evidence only), or probable (observed by dynamic verification); severity of harm maps
-   Lantern severity; overall risk is likelihood times severity on a 3x3 scale. This scale is
-   Lantern's, and the report says so.
+   Katz severity; overall risk is likelihood times severity on a 3x3 scale. This scale is
+   Katz's, and the report says so.
 6. Measures (Art. 35(7)(d)): an option per finding; effect, residual risk, and approval are
    blank for the controller.
 7. Sign-off: the ICO rows with names left blank.

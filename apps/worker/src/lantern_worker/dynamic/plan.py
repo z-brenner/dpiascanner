@@ -4,7 +4,7 @@
 2. Its declared run script (``dynamic.run`` in ``lantern.yml``).
 3. Otherwise start the application and exercise its routes with synthetic requests.
 
-Tests rarely carry Lantern's canary values, so they can reveal which hosts an application
+Tests rarely carry Katz's canary values, so they can reveal which hosts an application
 contacts but can seldom verify a sink. Modes therefore run in this order and the verifier
 moves to the next one only while reachable network sinks remain unverified and the time
 budget allows. A repository that declares nothing gets whichever modes can be detected.

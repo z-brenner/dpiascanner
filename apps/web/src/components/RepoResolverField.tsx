@@ -87,7 +87,7 @@ export function RepoResolverField({ resolve, onRun }: Props) {
               )}
               {!result.scannable && result.install_url && result.status !== "private_not_allowed" && (
                 <a className={button} href={result.install_url} target="_blank" rel="noreferrer">
-                  Install the Lantern app
+                  Install the Katz app
                 </a>
               )}
             </span>

@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:cf": "tsc -b && vite build --mode cloudflare",
     "lint": "tsc -b --noEmit && tsc -p worker --noEmit",
     "test": "vitest run --passWithNoTests",
-    "cf:dev": "pnpm run build && wrangler dev",
-    "cf:deploy": "pnpm run build && wrangler deploy"
+    "cf:dev": "pnpm run build:cf && wrangler dev",
+    "cf:deploy": "pnpm run build:cf && wrangler deploy"
   },
   "dependencies": {
     "react": "^18.3.1",

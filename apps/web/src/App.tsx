@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
+import { AboutPage } from "./pages/AboutPage";
 import { CallbackPage } from "./pages/CallbackPage";
 import { ConnectPage } from "./pages/ConnectPage";
 import { DiffPage } from "./pages/DiffPage";
@@ -19,6 +20,7 @@ export function App() {
         <Route path="runs/:runId" element={<RunPage />} />
         <Route path="runs/:runId/report" element={<ReportPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="about" element={<AboutPage />} />
         <Route path="*" element={<p>Not found.</p>} />
       </Route>
     </Routes>

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ApiError, api } from "../api/client";
 import type { User } from "../api/types";
+import { sourceUrl } from "../demo";
+import { DemoBanner } from "./DemoNotice";
 
 const nav = ({ isActive }: { isActive: boolean }) =>
   `px-2 py-1 rounded ${isActive ? "bg-stone-200 dark:bg-stone-800" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`;
@@ -12,7 +14,8 @@ export function Layout() {
     api.me().then(setUser).catch(() => setUser(null));
   }, []);
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
+      <DemoBanner />
       <header className="border-b border-stone-300 dark:border-stone-800">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 text-sm">
           <Link to="/" className="font-semibold">
@@ -25,13 +28,28 @@ export function Layout() {
             <NavLink to="/settings" className={nav}>
               Settings
             </NavLink>
+            <NavLink to="/about" className={nav}>
+              About
+            </NavLink>
           </nav>
           <span className="ml-auto text-stone-600 dark:text-stone-400">{user ? user.login : ""}</span>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <Outlet />
       </main>
+      <footer className="border-t border-stone-300 text-xs text-stone-600 dark:border-stone-800 dark:text-stone-400">
+        <p className="mx-auto max-w-6xl px-4 py-3">
+          Lantern drafts DPIAs from source code for review by a qualified person. It is not legal advice.{" "}
+          <Link to="/about" className="underline">
+            About
+          </Link>{" "}
+          ·{" "}
+          <a href={sourceUrl()} className="underline">
+            Source
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

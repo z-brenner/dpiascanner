@@ -92,4 +92,4 @@ jobs:
         working-directory: apps/web
         env:
           WRANGLER_SEND_METRICS: "false"
-        run: pnpm run build && pnpm exec wrangler deploy --dry-run --outdir "$RUNNER_TEMP/worker"
+        run: pnpm run build:cf && pnpm exec wrangler deploy --dry-run --outdir "$RUNNER_TEMP/worker"

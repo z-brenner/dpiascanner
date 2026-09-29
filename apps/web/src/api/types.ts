@@ -5,6 +5,9 @@ export type StageName = "clone" | "parse" | "graph" | "registry" | "classify" | 
 export interface Config {
   install_url: string;
   app_slug: string;
+  /** "stub" classifies on the server; "jev" sends redacted summaries to TypeSafe's Jev. */
+  decision_provider: string;
+  session_ttl_hours: number;
 }
 
 export interface User {

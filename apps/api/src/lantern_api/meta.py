@@ -19,10 +19,20 @@ from lantern_report.statutes import default_map
 router = APIRouter()
 
 
+def decision_provider() -> str:
+    return os.environ.get("LANTERN_DECISION_PROVIDER", "stub")
+
+
 @router.get("/config")
 def config(svc: Services = Depends(services)) -> dict[str, Any]:
-    """What the web app needs before sign-in: where to install the GitHub App."""
-    return {"install_url": svc.github.install_url(), "app_slug": svc.settings.github_app_slug}
+    """What the web app needs before sign-in: where to install the GitHub App, and the facts
+    its data notice depends on (whether classification leaves this server)."""
+    return {
+        "install_url": svc.github.install_url(),
+        "app_slug": svc.settings.github_app_slug,
+        "decision_provider": decision_provider(),
+        "session_ttl_hours": svc.settings.session_ttl_hours,
+    }
 
 
 @router.get("/settings")
@@ -37,7 +47,7 @@ def analysis_settings(
         "registry_version": load_registry().version,
         "severity_version": default_table().version,
         "statutes_version": default_map().version,
-        "decision_provider": os.environ.get("LANTERN_DECISION_PROVIDER", "stub"),
+        "decision_provider": decision_provider(),
         "runs_per_hour": svc.settings.runs_per_hour,
         "run_timeout_s": svc.settings.run_timeout_s,
         "clone_max_mb": svc.settings.clone_max_mb,

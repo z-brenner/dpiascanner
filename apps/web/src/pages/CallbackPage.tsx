@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
+import { ErrorText, Loading } from "../components/ui";
 
 /** GitHub sends the browser here after installation with ?code&installation_id&setup_action. */
 export function CallbackPage() {
@@ -21,5 +22,5 @@ export function CallbackPage() {
       .then(() => navigate("/repos", { replace: true }))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "Sign-in failed"));
   }, [params, navigate]);
-  return <p className="text-sm">{error ?? "Finishing sign-in…"}</p>;
+  return <div className="py-16">{error ? <ErrorText>{error}</ErrorText> : <Loading what="Finishing sign-in" />}</div>;
 }

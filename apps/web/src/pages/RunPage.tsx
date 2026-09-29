@@ -4,6 +4,7 @@ import { api } from "../api/client";
 import type { Run } from "../api/types";
 import { Pill, button, primaryButton } from "../components/Badge";
 import { StageTracker } from "../components/StageTracker";
+import { ErrorText, Loading, Notice, PageHeader, StatTile } from "../components/ui";
 
 const ACTIVE = new Set(["queued", "running", "cancelling"]);
 
@@ -32,55 +33,72 @@ export function RunPage() {
     };
   }, [runId]);
 
-  if (error) return <p className="text-red-700">{error}</p>;
-  if (!run) return <p className="text-sm">Loading…</p>;
+  if (error) return <ErrorText>{error}</ErrorText>;
+  if (!run) return <Loading what="Loading the run" />;
   const coverage = run.coverage;
   const tone = run.status === "completed" ? "good" : run.status === "failed" ? "bad" : "neutral";
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">
-          <span className="font-mono">{run.repo}</span> @ <span className="font-mono">{run.sha.slice(0, 12)}</span>
-        </h1>
-        <Pill tone={tone}>{run.status}</Pill>
-        {run.trigger === "pull_request" && <Pill>PR #{run.pr_number}</Pill>}
-        {ACTIVE.has(run.status) && run.status !== "cancelling" && (
-          <button type="button" className={button} onClick={() => void api.cancel(run.id).then(() => setRun({ ...run, status: "cancelling" }))}>
-            Cancel run
-          </button>
+    <div className="space-y-10">
+      <PageHeader
+        eyebrow={
+          <>
+            Run · <span className="normal-case">{run.sha.slice(0, 12)}</span>
+          </>
+        }
+        title={<span className="break-all">{run.repo}</span>}
+        actions={
+          <>
+            <Pill tone={tone}>{run.status}</Pill>
+            {run.trigger === "pull_request" && <Pill>PR #{run.pr_number}</Pill>}
+            {ACTIVE.has(run.status) && run.status !== "cancelling" && (
+              <button
+                type="button"
+                className={button}
+                onClick={() => void api.cancel(run.id).then(() => setRun({ ...run, status: "cancelling" }))}
+              >
+                Cancel run
+              </button>
+            )}
+          </>
+        }
+      >
+        {run.ref && (
+          <span>
+            <span className="font-mono text-[13px]">{run.ref}</span>, {run.mode === "incremental" ? "incremental" : "full"}{" "}
+            scan, started {run.trigger === "manual" ? "by hand" : `by a ${run.trigger.replace("_", " ")}`}.
+          </span>
         )}
-      </div>
-      <StageTracker stages={run.stages} />
+      </PageHeader>
+
+      <section className="card p-5 sm:p-6">
+        <StageTracker stages={run.stages} />
+      </section>
+
       {run.error && (
-        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm dark:border-red-800 dark:bg-red-950">
-          <p className="font-medium">Failed during {run.error.stage}</p>
-          <pre className="mt-1 whitespace-pre-wrap font-mono text-xs">{run.error.message}</pre>
-        </div>
+        <Notice tone="bad" title={`Failed during ${run.error.stage ?? "the run"}`}>
+          <pre className="mt-1 font-mono text-xs whitespace-pre-wrap">{run.error.message}</pre>
+        </Notice>
       )}
+
       {coverage && coverage.tainted_paths !== undefined && (
-        <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-          <div>
-            <dt className="text-stone-500">Tainted paths</dt>
-            <dd className="text-lg font-semibold">{coverage.tainted_paths}</dd>
-          </div>
-          <div>
-            <dt className="text-stone-500">Fully resolved</dt>
-            <dd className="text-lg font-semibold">{((coverage.resolved_fraction ?? 1) * 100).toFixed(1)}%</dd>
-          </div>
-          <div>
-            <dt className="text-stone-500">Findings</dt>
-            <dd className="text-lg font-semibold">{run.findings ?? "–"}</dd>
-          </div>
-          <div>
-            <dt className="text-stone-500">Unresolved</dt>
-            <dd className="text-lg font-semibold">{run.unresolved ?? "–"}</dd>
-          </div>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <StatTile label="Tainted paths" value={coverage.tainted_paths} />
+          <StatTile label="Fully resolved" value={`${((coverage.resolved_fraction ?? 1) * 100).toFixed(1)}%`} />
+          <StatTile label="Findings" value={run.findings ?? "–"} />
+          <StatTile label="Unresolved" value={run.unresolved ?? "–"} note="Need a reviewer's answer" />
         </dl>
       )}
+
       {run.status === "completed" && (
-        <Link className={primaryButton} to={`/runs/${run.id}/report`}>
-          Open the report
-        </Link>
+        <div className="card flex flex-wrap items-center gap-4 p-5">
+          <div className="flex-1">
+            <p className="display text-xl">The assessment is ready.</p>
+            <p className="text-sm text-ink-2">Findings, the DPIA draft, and every path behind them.</p>
+          </div>
+          <Link className={primaryButton} to={`/runs/${run.id}/report`}>
+            Open the report
+          </Link>
+        </div>
       )}
     </div>
   );

@@ -13,6 +13,8 @@ function config(overrides: Partial<Config> = {}): Config {
     app_slug: "lantern-dpia",
     decision_provider: "stub",
     session_ttl_hours: 168,
+    public_repos_only: false,
+    retention: { hours: 0, active: false, last_sweep_at: null },
     ...overrides,
   };
 }
@@ -102,3 +104,45 @@ describe("contactHref", () => {
     expect(contactHref("mailto:a@b.org")).toBe("mailto:a@b.org");
   });
 });
+
+describe("the demo's promises follow the server", () => {
+  it("states public-only and 3-day deletion only while deletion is running", async () => {
+    vi.stubEnv("VITE_DEMO_NOTICE", "1");
+    vi.spyOn(api, "config").mockResolvedValue(
+      config({
+        public_repos_only: true,
+        session_ttl_hours: 72,
+        retention: { hours: 72, active: true, last_sweep_at: "2026-09-29T12:00:00+00:00" },
+      }),
+    );
+    renderAt(
+      <>
+        <DemoBanner />
+        <AboutPage />
+      </>,
+    );
+    expect(await screen.findByText("3 days after the scan")).toBeInTheDocument();
+    expect(screen.getByText("3 days after you last sign in")).toBeInTheDocument();
+    expect(screen.getByText(/This demo scans public repositories only/)).toBeInTheDocument();
+    const banner = screen.getByRole("note", { name: "Demo notice" });
+    expect(banner).toHaveTextContent("Public repositories only.");
+    expect(banner).toHaveTextContent("Scans are deleted after 3 days.");
+  });
+
+  it("withdraws the promise when deletion has stopped", async () => {
+    vi.stubEnv("VITE_DEMO_NOTICE", "1");
+    vi.spyOn(api, "config").mockResolvedValue(
+      config({ retention: { hours: 72, active: false, last_sweep_at: "2026-09-20T12:00:00+00:00" } }),
+    );
+    renderAt(
+      <>
+        <DemoBanner />
+        <AboutPage />
+      </>,
+    );
+    expect(await screen.findByText("Automatic deletion is not running right now")).toBeInTheDocument();
+    expect(screen.getAllByText("Until you ask for deletion")).toHaveLength(2);
+    expect(screen.getByRole("note", { name: "Demo notice" })).not.toHaveTextContent("deleted after");
+  });
+});
+

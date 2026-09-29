@@ -8,6 +8,16 @@ export interface Config {
   /** "stub" classifies on the server; "jev" sends redacted summaries to TypeSafe's Jev. */
   decision_provider: string;
   session_ttl_hours: number;
+  public_repos_only: boolean;
+  retention: Retention;
+}
+
+/** Automatic deletion. `active` is true only while the server's sweeps are actually running;
+ * the site promises deletion only then. */
+export interface Retention {
+  hours: number;
+  active: boolean;
+  last_sweep_at: string | null;
 }
 
 export interface User {
@@ -30,6 +40,9 @@ export interface Repo {
   private: boolean;
   default_branch: string;
   installation_id: number;
+  /** False for private repositories on an instance that scans public ones only. */
+  scannable: boolean;
+  updated_at?: string | null;
 }
 
 export interface Page<T> {
@@ -41,7 +54,7 @@ export interface Page<T> {
 
 export interface Resolution {
   input: string;
-  status: "installed" | "public" | "inaccessible" | "invalid";
+  status: "installed" | "public" | "private_not_allowed" | "inaccessible" | "invalid";
   scannable: boolean;
   full_name: string | null;
   owner: string | null;

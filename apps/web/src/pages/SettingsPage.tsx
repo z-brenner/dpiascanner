@@ -1,32 +1,35 @@
 import { api } from "../api/client";
 import { useLoad } from "../components/Layout";
+import { ErrorText, Loading, PageHeader } from "../components/ui";
 
 export function SettingsPage() {
   const { data, error } = useLoad(() => api.settings(), []);
-  if (error) return <p className="text-red-700">{error}</p>;
-  if (!data) return <p className="text-sm">Loading…</p>;
-  const rows: [string, string][] = [
-    ["Confidence threshold", `${data.threshold} (decisions below it are reported as unresolved)`],
-    ["Question set", `${data.question_set_version ?? "–"} (available: ${data.question_set_versions.join(", ")})`],
+  if (error) return <ErrorText>{error}</ErrorText>;
+  if (!data) return <Loading what="Loading settings" />;
+  const rows: [string, React.ReactNode, string?][] = [
+    ["Confidence threshold", data.threshold, "Decisions below it are reported as unresolved."],
+    ["Question set", data.question_set_version ?? "–", `Available: ${data.question_set_versions.join(", ")}`],
     ["SDK registry", data.registry_version],
     ["Decision provider", data.decision_provider],
     ["Severity table", data.severity_version],
     ["Statute map", data.statutes_version],
-    ["Runs per hour per user", String(data.runs_per_hour)],
+    ["Runs per hour per user", data.runs_per_hour],
     ["Run timeout", `${Math.round(data.run_timeout_s / 60)} minutes`],
     ["Clone size cap", `${data.clone_max_mb} MB`],
   ];
   return (
-    <div className="max-w-2xl space-y-3">
-      <h1 className="text-xl font-semibold">Settings</h1>
-      <p className="text-sm text-stone-600 dark:text-stone-400">
+    <div className="max-w-3xl space-y-8">
+      <PageHeader eyebrow="Server" title="Settings">
         These are set on the server. Every finding records the question set, provider, and commit it came from.
-      </p>
-      <dl className="divide-y divide-stone-200 text-sm dark:divide-stone-800">
-        {rows.map(([k, v]) => (
-          <div key={k} className="grid grid-cols-3 gap-2 py-2">
-            <dt className="font-medium">{k}</dt>
-            <dd className="col-span-2">{v}</dd>
+      </PageHeader>
+      <dl className="card divide-y divide-line">
+        {rows.map(([k, v, note]) => (
+          <div key={k} className="grid gap-1 px-5 py-3.5 text-sm sm:grid-cols-[14rem_1fr] sm:gap-4">
+            <dt className="text-ink-2">{k}</dt>
+            <dd>
+              <span className="font-mono text-[13px] text-ink">{v}</span>
+              {note && <span className="block text-xs text-ink-3">{note}</span>}
+            </dd>
           </div>
         ))}
       </dl>

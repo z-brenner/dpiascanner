@@ -12,7 +12,7 @@ export function CitedText({ text, onCite }: { text: string; onCite: (findingId: 
       <button
         key={`${id}-${index}`}
         type="button"
-        className="font-mono text-sky-800 underline dark:text-sky-300"
+        className="mx-px rounded bg-sunken px-1 py-px font-mono text-[0.8em] text-ink transition-colors hover:bg-accent-soft"
         onClick={() => onCite(id)}
       >
         [{id}]

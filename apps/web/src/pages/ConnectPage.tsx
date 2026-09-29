@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import type { Config, Installation } from "../api/types";
 import { primaryButton } from "../components/Badge";
+import { BeforeYouInstall } from "../components/DemoNotice";
 
 export function ConnectPage() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -22,6 +23,7 @@ export function ConnectPage() {
         evidence. The GitHub App asks for read access to contents and metadata, and write access to checks and
         pull request comments. It cannot change your code.
       </p>
+      <BeforeYouInstall />
       {config && (
         <a className={primaryButton} href={config.install_url}>
           Install the GitHub App

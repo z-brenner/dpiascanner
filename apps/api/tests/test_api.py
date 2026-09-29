@@ -103,10 +103,17 @@ def test_installation_callback_signs_in_and_encrypts_the_token(
     assert svc.cipher.decrypt(user.token_encrypted) == USER_TOKEN
 
 
-def test_config_is_public_and_settings_need_a_session(client: TestClient) -> None:
-    assert (
-        client.get("/config").json()["install_url"].endswith("/apps/lantern-dpia/installations/new")
-    )
+def test_config_is_public_and_settings_need_a_session(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("LANTERN_DECISION_PROVIDER", raising=False)
+    config = client.get("/config").json()
+    assert config["install_url"].endswith("/apps/lantern-dpia/installations/new")
+    # The web app's data notice says whether classification leaves the server.
+    assert config["decision_provider"] == "stub" and config["session_ttl_hours"] == 24 * 7
+    monkeypatch.setenv("LANTERN_DECISION_PROVIDER", "jev")
+    assert client.get("/config").json()["decision_provider"] == "jev"
+    monkeypatch.delenv("LANTERN_DECISION_PROVIDER")
     assert client.get("/settings").status_code == 401
     client.post("/auth/github/callback", json={"code": "good"})
     settings = client.get("/settings").json()

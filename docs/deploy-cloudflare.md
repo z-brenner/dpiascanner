@@ -134,9 +134,13 @@ For the first deploy, from a machine where you can run `wrangler login`:
 
 ```bash
 pnpm install
-pnpm --filter @lantern/web build
+VITE_OPERATOR_CONTACT=lantern@example.org VITE_BACKEND_HOST="Example Hosting (Germany)" \
+  pnpm --filter @lantern/web build:cf
 pnpm --filter @lantern/web exec wrangler deploy --var API_ORIGIN:https://api.example.com
 ```
+
+`build:cf` is the public demo build. It shows the demo notice described below; a plain `build`
+does not.
 
 `API_ORIGIN` persists across deploys, because `keep_vars` is set in `wrangler.jsonc`. You can
 also set it in the dashboard, under **Workers → lantern-web → Settings → Variables**.
@@ -159,6 +163,8 @@ to `main`, and can be run by hand. It stays a no-op until the repository has the
 | Secret | `CLOUDFLARE_API_TOKEN` | An API token from the "Edit Cloudflare Workers" template, limited to your account (and zone, for a custom domain) |
 | Secret | `CLOUDFLARE_ACCOUNT_ID` | Your account ID |
 | Variable | `LANTERN_API_ORIGIN` | `https://api.example.com` (optional once it is set on the Worker) |
+| Variable | `LANTERN_OPERATOR_CONTACT` | An email address or URL for questions and deletion requests, shown on the About page |
+| Variable | `LANTERN_BACKEND_HOST` | Who hosts the API server, for example `Hetzner Online GmbH (Germany)`, named as a processor |
 
 It never deploys code from pull requests: it checks that the CI run came from a push to this
 repository, not only that the branch was named `main`. Anyone with write access can run it by
@@ -198,6 +204,44 @@ Then install the app from the site and run a scan on a small repository.
 | An Access login page, or a 403, under `/api` | The Worker has no service token, or the Access policy does not include it |
 | Signed in, but every call returns 401 | The API is reached directly instead of through `/api`, or `LANTERN_COOKIE_SECURE=1` over plain http |
 | Webhooks answer 401 `invalid signature` | `GITHUB_WEBHOOK_SECRET` does not match the App's |
+
+## The demo notice
+
+The Cloudflare build (`build:cf`, which reads `apps/web/.env.cloudflare`) tells visitors what
+they are using:
+
+- **A banner on every page:** an experimental demo, not a product; Cloudflare processes the
+  traffic as a data processor; for real work, host Lantern yourself.
+- **A "Before you install" box on the Connect page,** before anyone grants the GitHub App
+  access to their repositories.
+- **An About page (`/about`).** It covers:
+  - what is stored, why, and for how long;
+  - who else handles the data: Cloudflare, the server's host, and, when
+    `LANTERN_DECISION_PROVIDER=jev`, TypeSafe;
+  - how to have data deleted;
+  - the legal basis and the visitor's GDPR rights.
+
+The page reads the decision provider and the session lifetime from the API's public `/config`,
+so it stays true when the configuration changes. The API and worker must use the same `.env`.
+
+Two things are the operator's to fill in:
+- **A contact** (`LANTERN_OPERATOR_CONTACT`). Without it, the page tells people to open an
+  issue that names only their GitHub login.
+- **The server's host** (`LANTERN_BACKEND_HOST`).
+
+GDPR Art. 13(1)(a) requires the controller's identity and contact details. The page names the
+maintainer of the repository and uses the contact you set.
+
+Two statements on the page are commitments you have to keep:
+- Stored results are kept "until you ask for deletion", and uninstalling the GitHub App does
+  not delete them.
+- Deletion is manual today: delete the user's runs from the database.
+
+The stated legal basis is legitimate interests (Art. 6(1)(f)). It is your call as controller:
+change it in `apps/web/src/pages/AboutPage.tsx` if you rely on something else.
+
+A self-hosted build shows none of this. Every build keeps the footer line saying reports are
+not legal advice.
 
 ## What this puts Cloudflare in the middle of
 

@@ -41,7 +41,6 @@ from lantern_worker.pipeline import PipelineConfig, PipelineResult, run_pipeline
 
 HERE = Path(__file__).resolve().parent
 RESULTS = HERE / "results"
-GAPS_ISSUE = "https://github.com/z-brenner/dpiascanner/issues/2"
 
 
 def pipeline_predictions(graph: DataFlowGraph) -> list[Predicted]:
@@ -158,12 +157,13 @@ def render_results(results: list[dict[str, Any]]) -> str:
         "",
         "Fixtures: planted flows are canary-python (C01-C12), canary-typescript (C01-C12), and",
         "unregistered-sdk-python (D01), 25 flows in all. clean-python is the false-positive control.",
-        "gaps-python holds patterns found on a real repository that the analyzer does not handle",
-        "yet; it is reported separately and is not part of the CI gate.",
+        "gaps-python holds patterns taken from a real repository (full-stack-fastapi-template). It",
+        "is reported separately and is part of the CI gate, except flows its manifest marks",
+        "`known_gap` (added fixture-first, not handled yet).",
         "",
         "## Summary",
         "",
-        "| System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, known gaps | Wall clock |",
+        "| System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, real-world patterns | Wall clock |",
         "|---|---|---|---|---|---|---|---|",
     ]
     has_llm = any(r.get("kind") == "llm" for r in results)
@@ -175,7 +175,7 @@ def render_results(results: list[dict[str, Any]]) -> str:
         lines.append(
             f"| {r['system']} | {_pct(a['recall_planted'])} | {_pct(a['precision_planted'])} | "
             f"{a['clean_false_positives']} | {_pct(a['special_handled'])} | {_pct(a['finding_categories'])} | "
-            f"{_pct(a['recall_known_gaps'])} | {a['wall_clock_s']:.1f} s |"
+            f"{_pct(a['recall_real_world'])} | {a['wall_clock_s']:.1f} s |"
         )
     if not has_llm:
         lines.append(
@@ -240,7 +240,10 @@ def render_results(results: list[dict[str, Any]]) -> str:
         for f in r["fixtures"]
         for flow in f["flows"]
     ):
-        lines.append(f"- The known-gap misses are tracked in {GAPS_ISSUE}.")
+        lines.append(
+            "- Known gaps, with what the analyzer is missing, are listed in "
+            "`fixtures/gaps-python/MANIFEST.yaml`."
+        )
     if not has_llm:
         lines.append("- LLM baseline: not run, so no comparison is made.")
     lines += [
@@ -257,7 +260,9 @@ def render_results(results: list[dict[str, Any]]) -> str:
         "",
         "- The fixtures were written together with the analyzer, and every analyzer gap found",
         "  on them was fixed. Full recall on them shows the analyzer handles these patterns, not",
-        "  that it generalizes; gaps-python is the counterweight.",
+        "  that it generalizes. That now includes gaps-python: its patterns came from a real",
+        "  repository, but the analyzer was fixed against them, so it no longer measures",
+        "  generalization either. Only a repository the analyzer has not been tuned on does.",
         "- The stub provider is an oracle tuned to the fixtures, so its finding-category score",
         "  tests plumbing, not classification. Classification quality needs a real provider",
         "  (see the calibration harness in packages/decisions).",
@@ -294,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"{result['system']}: recall {_pct(a['recall_planted'])}, precision {_pct(a['precision_planted'])}, "
                 f"clean FP {a['clean_false_positives']}, special {_pct(a['special_handled'])}, "
-                f"known gaps {_pct(a['recall_known_gaps'])}, {a['wall_clock_s']} s"
+                f"real-world {_pct(a['recall_real_world'])}, {a['wall_clock_s']} s"
             )
             if provider == "stub":
                 stub_failures = result["gate_failures"]

@@ -71,6 +71,12 @@ is weaker evidence; the reason string keeps it distinct. Dynamic-only nodes beco
 `observed_unexpected_destination` findings; every other finding anchored on a sink carries
 the sink's status in `evidence.verification`.
 
+SMTP (`email` sinks) is only half covered. The recorder speaks HTTP and TLS, so an SMTP
+payload is never read and cannot verify a sink, and a client waiting for the server's
+greeting stalls until its step times out. Static analysis does not resolve the SMTP host yet,
+so an `email` sink reads `no-known-host`, and the relay's name, which the app does resolve,
+shows up as an `observed-unexpected` destination with method `DNS`.
+
 ## Backends
 
 **`DockerSandbox`** (`sandbox.py`) is the only place a scanned repository's code runs.

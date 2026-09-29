@@ -103,6 +103,8 @@ FIRST_PARTY_FAMILIES = {
     "log": "application logs",
     "queue": "a message queue",
 }
+# Sink families that hand data to a party outside the application.
+EXTERNAL_FAMILIES = frozenset({"http", "email"})
 
 
 def _first_host(hosts: Iterable[str]) -> str | None:
@@ -131,6 +133,8 @@ def destination_name(node: Node) -> str:
         model = node.attrs.get("model")
         base = FIRST_PARTY_FAMILIES[family]
         return f"{base} ({model} records)" if model and family == "orm" else base
+    if family == "email":
+        return "an SMTP mail server"
     return "an external destination that static analysis could not name"
 
 
@@ -140,7 +144,7 @@ def is_third_party(node: Node | None) -> bool:
         return False
     if node.attrs.get("registry") or node.attrs.get("dependency") or node.file == "<dynamic>":
         return True
-    return node.attrs.get("family") == "http"
+    return node.attrs.get("family") in EXTERNAL_FAMILIES
 
 
 def entry_label(node: Node) -> str | None:

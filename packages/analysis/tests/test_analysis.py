@@ -12,17 +12,34 @@ from lantern_analysis.model import DataFlowGraph, Flow, Node
 
 FIXTURES = Path(__file__).resolve().parents[3] / "fixtures"
 CANARIES = ["canary-python", "canary-typescript"]
+# Fixtures held to their manifests flow for flow: the canaries plus the patterns taken from
+# real repositories.
+MANIFESTED = [*CANARIES, "gaps-python"]
 
 
-@pytest.fixture(params=CANARIES)
-def canary(request: pytest.FixtureRequest) -> tuple[dict[str, Any], DataFlowGraph]:
+def _load(request: pytest.FixtureRequest) -> tuple[dict[str, Any], DataFlowGraph]:
     manifest = yaml.safe_load((FIXTURES / request.param / "MANIFEST.yaml").read_text())
     graph = request.getfixturevalue(request.param.replace("-", "_"))
     return manifest, graph
 
 
+@pytest.fixture(params=CANARIES)
+def canary(request: pytest.FixtureRequest) -> tuple[dict[str, Any], DataFlowGraph]:
+    return _load(request)
+
+
+@pytest.fixture(params=MANIFESTED)
+def manifested(request: pytest.FixtureRequest) -> tuple[dict[str, Any], DataFlowGraph]:
+    return _load(request)
+
+
 def _flows(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {f["id"]: f for f in manifest["flows"]}
+
+
+def handled(manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    """Manifest flows the analyzer must find: all but those marked as known gaps."""
+    return [f for f in manifest["flows"] if not f.get("known_gap")]
 
 
 def source_nodes(graph: DataFlowGraph, src: dict[str, Any]) -> list[Node]:
@@ -63,10 +80,12 @@ def the_flow(graph: DataFlowGraph, flow: dict[str, Any]) -> Flow:
 # ---------------------------------------------------------------------------- recall
 
 
-def test_every_manifest_flow_is_in_the_graph(canary: tuple[dict[str, Any], DataFlowGraph]) -> None:
-    manifest, graph = canary
+def test_every_manifest_flow_is_in_the_graph(
+    manifested: tuple[dict[str, Any], DataFlowGraph],
+) -> None:
+    manifest, graph = manifested
     missing = []
-    for flow in manifest["flows"]:
+    for flow in handled(manifest):
         for src in flow["sources"]:
             if not source_nodes(graph, src):
                 missing.append(f"{flow['id']}: source {src['file']}:{src['line']} {src['field']}")
@@ -77,10 +96,10 @@ def test_every_manifest_flow_is_in_the_graph(canary: tuple[dict[str, Any], DataF
 
 
 def test_reachability_and_resolution_match_manifest(
-    canary: tuple[dict[str, Any], DataFlowGraph],
+    manifested: tuple[dict[str, Any], DataFlowGraph],
 ) -> None:
-    manifest, graph = canary
-    for flow in manifest["flows"]:
+    manifest, graph = manifested
+    for flow in handled(manifest):
         f = the_flow(graph, flow)
         assert f.reachable is flow["reachable"], f"{flow['id']} reachable={f.reachable}"
         assert f.unresolved is (flow["resolution"] == "unresolved"), (
@@ -89,10 +108,10 @@ def test_reachability_and_resolution_match_manifest(
 
 
 def test_sources_carry_lexicon_hints_for_expected_category(
-    canary: tuple[dict[str, Any], DataFlowGraph],
+    manifested: tuple[dict[str, Any], DataFlowGraph],
 ) -> None:
-    manifest, graph = canary
-    for flow in manifest["flows"]:
+    manifest, graph = manifested
+    for flow in handled(manifest):
         for src in flow["sources"]:
             categories = {
                 h["category"] for n in source_nodes(graph, src) for h in n.attrs["lexicon_hints"]
@@ -223,9 +242,9 @@ def test_registry_sinks_have_registry_semantics(
     )
 
 
-def test_no_flows_beyond_the_manifest(canary: tuple[dict[str, Any], DataFlowGraph]) -> None:
-    """Precision: every flow in the canary graph is one the manifest documents."""
-    manifest, graph = canary
+def test_no_flows_beyond_the_manifest(manifested: tuple[dict[str, Any], DataFlowGraph]) -> None:
+    """Precision: every flow in the graph is one the manifest documents."""
+    manifest, graph = manifested
     expected: set[tuple[str, int, str, int]] = set()
     for flow in manifest["flows"]:
         for src in flow["sources"]:
@@ -387,3 +406,124 @@ def test_nested_router_and_blueprint_prefixes(tmp_path: Path) -> None:
     # register_blueprint's url_prefix replaces the blueprint's own.
     assert ("GET", "/internal/stats") in routes
     assert ("POST", "/internal/reset") in routes
+
+
+def test_orm_reads_through_select_statements(tmp_path: Path) -> None:
+    """SQLModel and SQLAlchemy 2 reads: chained and variable-bound select(), and table=True."""
+    from lantern_analysis.analyze import analyze_repo
+
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "__init__.py").write_text("")
+    (tmp_path / "app" / "models.py").write_text(
+        "from sqlalchemy.orm import DeclarativeBase, Mapped\n"
+        "from sqlmodel import Field, SQLModel\n\n\n"
+        "class Base(DeclarativeBase):\n    pass\n\n\n"
+        "class Patient(Base):\n"
+        '    __tablename__ = "patients"\n'
+        "    email: Mapped[str]\n\n\n"
+        "class AccountBase(SQLModel):\n    email: str\n    full_name: str\n\n\n"
+        "class Account(AccountBase, table=True):\n"
+        "    id: int | None = Field(default=None, primary_key=True)\n\n\n"
+        "class AccountPublic(AccountBase):\n    id: int\n"
+    )
+    (tmp_path / "app" / "jobs.py").write_text(
+        "import logging\n\n"
+        "from sqlalchemy import select as sa_select\n"
+        "from sqlmodel import Session, select\n\n"
+        "from app.models import Account, AccountBase, AccountPublic, Patient\n\n"
+        'logger = logging.getLogger("jobs")\n\n\n'
+        "def chained(session: Session, account_id: int) -> None:\n"
+        "    account = session.exec(select(Account).where(Account.id == account_id)).first()\n"
+        '    logger.info("account %s", account.full_name)\n\n\n'
+        "def sqlalchemy_scalars(session: Session) -> None:\n"
+        "    for patient in session.scalars(select(Patient).order_by(Patient.email)):\n"
+        '        logger.info("patient %s", patient.email)\n\n\n'
+        "def schema_only(session: Session) -> None:\n"
+        "    for row in session.exec(select(AccountBase)):\n"
+        '        logger.info("row %s", row.email)\n'
+        "    for public in session.exec(select(AccountPublic)):\n"
+        '        logger.info("public %s", public.full_name)\n'
+    )
+    graph = analyze_repo(tmp_path, "x")
+    found = {
+        (graph.nodes[f.node_ids[0]].symbol, graph.nodes[f.node_ids[0]].attrs.get("field"))
+        for f in graph.flows
+    }
+    assert ("chained:Account.full_name", "full_name") in found
+    assert ("sqlalchemy_scalars:Patient.email", "email") in found
+    # Without table=True a SQLModel class is a schema, and so are its subclasses.
+    assert not [s for s, _ in found if s.startswith("schema_only:")]
+
+
+def _flow_pairs(graph: DataFlowGraph) -> set[tuple[str, str, int]]:
+    """(source field, sink file, sink line) for every flow."""
+    out = set()
+    for f in graph.flows:
+        src = graph.nodes[f.node_ids[0]]
+        snk = next(graph.nodes[i] for i in f.node_ids if graph.nodes[i].kind == "sink")
+        out.add((str(src.attrs.get("field")), snk.file, snk.line_start))
+    return out
+
+
+def test_smtp_sinks(tmp_path: Path) -> None:
+    from lantern_analysis.analyze import analyze_repo
+
+    (tmp_path / "mail.py").write_text(
+        "import smtplib\n"  # 1
+        "from email.message import EmailMessage\n\n"  # 2-3
+        "import aiosmtplib\n"  # 4
+        "from fastapi import FastAPI\n"  # 5
+        "from pydantic import BaseModel\n\n"  # 6-7
+        "app = FastAPI()\n\n\n"  # 8-10
+        "class Signup(BaseModel):\n    email: str\n    phone: str\n\n\n"  # 11-15
+        '@app.post("/ssl")\n'  # 16
+        "def ssl(body: Signup) -> None:\n"  # 17
+        '    client = smtplib.SMTP_SSL("smtp.example.com")\n'  # 18
+        '    client.sendmail("from@example.com", [body.email], "hi")\n'  # 19
+        "    client.quit()\n\n\n"  # 20-22
+        '@app.post("/async")\n'  # 23
+        "async def send_async(body: Signup) -> None:\n"  # 24
+        "    message = EmailMessage()\n"  # 25
+        '    message.add_attachment(body.phone.encode(), maintype="text", subtype="plain")\n'  # 26
+        '    await aiosmtplib.send(message, hostname="smtp.example.com")\n\n\n'  # 27-29
+        '@app.post("/error")\n'  # 30
+        "def error(body: Signup) -> None:\n"  # 31
+        "    raise smtplib.SMTPException(body.email)\n"  # 32
+    )
+    graph = analyze_repo(tmp_path, "x")
+    sinks = {(n.line_start, n.attrs["family"]) for n in graph.nodes.values() if n.kind == "sink"}
+    assert (19, "email") in sinks and (27, "email") in sinks
+    # The client constructor and exception classes are not sinks.
+    assert not {line for line, _ in sinks} & {18, 32}
+    pairs = _flow_pairs(graph)
+    assert ("email", "mail.py", 19) in pairs
+    assert ("phone", "mail.py", 27) in pairs  # through the attachment, a mutator method
+
+
+def test_mutator_methods_carry_taint_into_their_receiver(tmp_path: Path) -> None:
+    from lantern_analysis.analyze import analyze_repo
+
+    (tmp_path / "jobs.py").write_text(
+        "import logging\n\n"  # 1-2
+        "import httpx\n"  # 3
+        "from fastapi import FastAPI\n"  # 4
+        "from pydantic import BaseModel\n\n"  # 5-6
+        "app = FastAPI()\n"  # 7
+        'logger = logging.getLogger("jobs")\n\n\n'  # 8-10
+        "class Contact(BaseModel):\n    email: str\n\n\n"  # 11-14
+        '@app.post("/batch")\n'  # 15
+        "def batch(contact: Contact) -> None:\n"  # 16
+        "    rows = []\n"  # 17
+        "    rows.append(contact)\n"  # 18
+        "    for row in rows:\n"  # 19
+        '        logger.info("queued %s", row.email)\n'  # 20
+        "    client = httpx.Client()\n"  # 21
+        '    client.get("https://status.example.com", params={"q": contact.email})\n'  # 22
+        '    status = client.get("https://status.example.com/health")\n'  # 23
+        '    logger.info("status %s", status.text)\n'  # 24
+    )
+    graph = analyze_repo(tmp_path, "x")
+    pairs = _flow_pairs(graph)
+    assert ("email", "jobs.py", 20) in pairs  # list.append then iteration
+    # A client call is not a mutation: the later response is not the contact's data.
+    assert ("email", "jobs.py", 24) not in pairs

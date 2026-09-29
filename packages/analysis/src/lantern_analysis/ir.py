@@ -221,6 +221,8 @@ class Class:
     module: str
     span: Span
     bases: list[Expr] = field(default_factory=list)
+    # Class keyword arguments as source text, such as SQLModel's `table=True` or a metaclass.
+    keywords: dict[str, str] = field(default_factory=dict)
     methods: dict[str, str] = field(default_factory=dict)
     fields: dict[str, ClassField] = field(default_factory=dict)
     decorators: list[Expr] = field(default_factory=list)

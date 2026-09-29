@@ -6,14 +6,15 @@ Scoring rules are in `benchmarks/scoring.py`; the LLM baseline's prompt is
 
 Fixtures: planted flows are canary-python (C01-C12), canary-typescript (C01-C12), and
 unregistered-sdk-python (D01), 25 flows in all. clean-python is the false-positive control.
-gaps-python holds patterns found on a real repository that the analyzer does not handle
-yet; it is reported separately and is not part of the CI gate.
+gaps-python holds patterns taken from a real repository (full-stack-fastapi-template). It
+is reported separately and is part of the CI gate, except flows its manifest marks
+`known_gap` (added fixture-first, not handled yet).
 
 ## Summary
 
-| System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, known gaps | Wall clock |
+| System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, real-world patterns | Wall clock |
 |---|---|---|---|---|---|---|---|
-| pipeline (stub provider) | 100% | 100% | 0 | 100% | 100% | 33% | 18.7 s |
+| pipeline (stub provider) | 100% | 100% | 0 | 100% | 100% | 100% | 23.6 s |
 | pipeline (Jev provider) | not run: TYPESAFE_API_KEY and TYPESAFE_BASE_URL not set | | | | | | |
 | LLM baseline (claude-opus-5-5) | not run: ANTHROPIC_API_KEY not set | | | | | | |
 
@@ -23,11 +24,11 @@ yet; it is reported separately and is not part of the CI gate.
 
 | Fixture | Recall | Precision | Predictions | Time |
 |---|---|---|---|---|
-| canary-python | 100% | 100% | 19 | 2.4 s |
-| canary-typescript | 100% | 100% | 19 | 6.0 s |
-| unregistered-sdk-python | 100% | 100% | 2 | 6.0 s |
-| clean-python | n/a | n/a | 0 | 2.1 s |
-| gaps-python | 33% | 100% | 2 | 2.1 s |
+| canary-python | 100% | 100% | 19 | 2.8 s |
+| canary-typescript | 100% | 100% | 19 | 7.8 s |
+| unregistered-sdk-python | 100% | 100% | 2 | 7.6 s |
+| clean-python | n/a | n/a | 0 | 2.7 s |
+| gaps-python | 100% | 100% | 6 | 2.7 s |
 
 | Flow | Found | Special case handled |
 |---|---|---|
@@ -56,17 +57,16 @@ yet; it is reported separately and is not part of the CI gate.
 | canary-typescript C11 | yes | yes (unreachable) |
 | canary-typescript C12 | yes |  |
 | unregistered-sdk-python D01 | yes |  |
-| gaps-python G01 | no |  |
+| gaps-python G01 | yes |  |
 | gaps-python G02 | yes |  |
-| gaps-python G03 | no |  |
+| gaps-python G03 | yes |  |
+| gaps-python G04 | yes |  |
 
 ## Where each approach failed
 
-- pipeline (stub provider): gaps-python G01: No sink rule for smtplib (SMTP.send_message, SMTP.sendmail).
-- pipeline (stub provider): gaps-python G03: SQLModel reads (session.exec(select(Model))) are not ORM-read sources; SQLModel table=True classes are not recognized as ORM models.
+- pipeline (stub provider): found every flow, handled every special case, and reported no extra flows.
 - pipeline (Jev provider): not run (TYPESAFE_API_KEY and TYPESAFE_BASE_URL not set).
 - LLM baseline (claude-opus-5-5): not run (ANTHROPIC_API_KEY not set).
-- The known-gap misses are tracked in https://github.com/z-brenner/dpiascanner/issues/2.
 
 ## Reproduce
 
@@ -80,7 +80,9 @@ uv run python benchmarks/run_benchmark.py --write-results   # re-render with the
 
 - The fixtures were written together with the analyzer, and every analyzer gap found
   on them was fixed. Full recall on them shows the analyzer handles these patterns, not
-  that it generalizes; gaps-python is the counterweight.
+  that it generalizes. That now includes gaps-python: its patterns came from a real
+  repository, but the analyzer was fixed against them, so it no longer measures
+  generalization either. Only a repository the analyzer has not been tuned on does.
 - The stub provider is an oracle tuned to the fixtures, so its finding-category score
   tests plumbing, not classification. Classification quality needs a real provider
   (see the calibration harness in packages/decisions).

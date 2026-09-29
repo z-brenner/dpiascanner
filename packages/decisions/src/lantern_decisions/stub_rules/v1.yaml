@@ -317,6 +317,15 @@ rules:
       sale_or_share_cpra: {answer: "no", probability: 0.9}
       purpose: service_delivery
 
+  - name: mail handed to an SMTP server
+    applies_to: [sink]
+    when: [{path: rule_ids, matches: "\\.sink\\.email\\."}]
+    unless: [{path: registry.destination_class, exists: true}]
+    confidence: 0.88
+    answers:
+      destination_class: communications
+      purpose: {answer: service_delivery, probability: 0.8}
+
   - name: unregistered http destination
     applies_to: [sink]
     when: [{path: rule_ids, matches: "\\.sink\\.(http|dependency)\\."}]

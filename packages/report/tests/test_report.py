@@ -424,3 +424,17 @@ def test_sentence_splitting_keeps_legal_abbreviations() -> None:
     assert validate_sentences(["Malformed [F-12] [F-0001]."], {"F-0001"})[0].reason.startswith(
         "malformed"
     )
+
+
+def test_smtp_sinks_are_named_third_party_destinations() -> None:
+    from lantern_analysis.model import Node
+    from lantern_report.context import destination_name, is_third_party
+
+    def sink(family: str) -> Node:
+        return Node(
+            "N", "sink", "app/mailer.py", 15, 15, "send", "python", attrs={"family": family}
+        )
+
+    assert is_third_party(sink("email")) and is_third_party(sink("http"))
+    assert not is_third_party(sink("log")) and not is_third_party(sink("orm"))
+    assert destination_name(sink("email")) == "an SMTP mail server"

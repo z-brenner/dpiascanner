@@ -19,7 +19,7 @@ from lantern_registry import Registry, load_registry
 from lantern_registry.resolver import ProfileResult
 
 URL = re.compile(r"^(?:https?|wss?)://([A-Za-z0-9.-]+\.[A-Za-z]{2,})(?::\d+)?(?:/|$)")
-NETWORK_FAMILIES = frozenset({"http", "registry", "queue"})
+NETWORK_FAMILIES = frozenset({"http", "registry", "queue", "email"})
 
 
 def profile_package(

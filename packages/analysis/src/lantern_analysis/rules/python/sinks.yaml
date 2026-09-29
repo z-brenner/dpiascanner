@@ -67,6 +67,42 @@ rules:
           metavariable: $M
           regex: ^(get|post|put|patch|delete|head|options|request|stream|send)$
 
+  # Mail handed to an SMTP server: the relay's operator and the recipients both receive it.
+  - id: python.sink.email.smtplib
+    languages: [python]
+    severity: INFO
+    message: "sink=email"
+    metadata: {kind: sink, family: email}
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $C = smtplib.$CLIENT(...)
+                  ...
+              - pattern-inside: |
+                  with smtplib.$CLIENT(...) as $C:
+                    ...
+          - metavariable-regex:
+              metavariable: $CLIENT
+              regex: ^(SMTP|SMTP_SSL|LMTP)$
+          - pattern: $C.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(send_message|sendmail)$
+      - patterns:
+          - pattern-either:
+              - pattern-inside: |
+                  $C = aiosmtplib.SMTP(...)
+                  ...
+              - pattern-inside: |
+                  async with aiosmtplib.SMTP(...) as $C:
+                    ...
+          - pattern: $C.$M(...)
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(send_message|sendmail)$
+      - pattern: aiosmtplib.send(...)
+
   - id: python.sink.orm.sqlalchemy-write
     languages: [python]
     severity: INFO

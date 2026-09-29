@@ -64,18 +64,32 @@ graph = analyze_repo("path/to/repo", commit="<sha>")
 - **Unreachable flows are kept**, flagged `reachable: false`.
 - **Library sinks do not propagate their return value.** An HTTP response or an SDK
   object is not the data that was sent.
+- **Mutator methods carry taint into their receiver** when it is a local or module
+  variable, from a short list (`taint.py`, `MUTATOR_METHODS`): element adders such as
+  `append` and `add`, merges such as `update`, and content setters such as
+  `EmailMessage.set_content` and `add_attachment`. Other library calls pass taint to their
+  result only, so a tainted request does not taint the client.
+- **ORM reads** are `session.query(Model)`, `session.get(Model, ...)`, Django managers, and
+  `select(Model)` passed to `execute`, `scalars`, `scalar`, or SQLModel's `exec`, chained
+  (`.where(...)`) or bound to a variable first. A SQLModel class is a table only when it is
+  declared with `table=True`; its non-table bases and siblings are schemas.
+- **SMTP** (`smtplib.SMTP`, `SMTP_SSL`, `LMTP`, `aiosmtplib`) is a sink of family `email`: a
+  third-party disclosure to the mail relay, classified as `communications`.
 - The coverage metric is `paths_with_unresolved_step / tainted_paths`.
 
 ## Known gaps (found on real repositories)
 
-Per the project rule, each of these gets a fixture flow first, then an analyzer change.
-`fixtures/gaps-python` now holds the first two (flows G01 and G03, marked `known_gap`), and
-the benchmark reports them; they are tracked in z-brenner/dpiascanner#2.
+Per the project rule, each of these gets a fixture flow first (in `fixtures/gaps-python`,
+marked `known_gap`), then an analyzer change. That fixture is part of the CI gate except for
+flows still marked `known_gap`. SMTP (G01) and SQLModel reads (G03, G04) were fixed in
+z-brenner/dpiascanner#2.
 
-- SMTP and generic email libraries (`smtplib`, `emails`, `fastapi-mail`, `nodemailer`) are
-  not sinks yet (G01).
-- SQLModel reads (`session.exec(select(Model))`) are not ORM-read sources, and `table=True`
-  classes are recognized only through `__tablename__` or a known base (G03).
+- Email libraries other than `smtplib` and `aiosmtplib` (`emails`, which
+  full-stack-fastapi-template uses, `fastapi-mail`, `nodemailer`) are not sinks yet.
+- The SMTP server's host is not resolved statically (it is usually a constructor argument
+  read from settings), so an `email` sink has no expected endpoints and the report names it
+  "an SMTP mail server".
+- An SMTP client defined on `self` in one method and used in another is not matched.
 - FastAPI dependency aliases (`CurrentUser = Annotated[User, Depends(...)]`) are not treated
   as ORM-row sources. A session injected the same way does work as an ORM sink (G02 passes).
 - Server-rendered templates, GraphQL resolvers, Django class-based views, and NestJS

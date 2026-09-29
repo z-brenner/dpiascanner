@@ -14,6 +14,9 @@ manifests with the same rules:
 - Unresolved and unreachable handling: for flows the manifest marks ``resolution:
   unresolved`` (C08) or ``reachable: false`` (C11), the flow must be found and every
   matching prediction must say so.
+- The CI gate requires every flow in a gated fixture to be found, except flows the manifest
+  marks ``known_gap`` (patterns added fixture-first that the analyzer does not handle yet),
+  and no flows at all on the clean fixture.
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ SOURCE_TOLERANCE = 3
 @dataclass(frozen=True)
 class FixtureSpec:
     name: str
-    group: str  # planted | clean | known-gaps
+    group: str  # planted | clean | real-world
     gated: bool
     dependency_depth: int = 0
 
@@ -44,7 +47,7 @@ BENCHMARK_FIXTURES = (
     FixtureSpec("canary-typescript", "planted", gated=True),
     FixtureSpec("unregistered-sdk-python", "planted", gated=False, dependency_depth=1),
     FixtureSpec("clean-python", "clean", gated=True),
-    FixtureSpec("gaps-python", "known-gaps", gated=False),
+    FixtureSpec("gaps-python", "real-world", gated=True),
 )
 
 
@@ -189,7 +192,7 @@ class Aggregate:
     precision_planted: float | None
     clean_false_positives: int
     special_handled: float | None
-    recall_known_gaps: float | None
+    recall_real_world: float | None
     finding_categories: float | None
     wall_clock_s: float
 
@@ -202,14 +205,16 @@ def aggregate(scores: list[FixtureScore]) -> Aggregate:
     flows = [f for s in planted for f in s.flows]
     special = [f for f in flows if f.special]
     preds = sum(s.predictions for s in planted)
-    gaps = [f for s in scores if s.group == "known-gaps" for f in s.flows]
+    real_world = [f for s in scores if s.group == "real-world" for f in s.flows]
     categories = [s for s in planted if s.finding_categories_correct is not None]
     return Aggregate(
         recall_planted=sum(f.found for f in flows) / len(flows) if flows else 0.0,
         precision_planted=sum(s.true_predictions for s in planted) / preds if preds else None,
         clean_false_positives=sum(s.predictions for s in scores if s.group == "clean"),
         special_handled=sum(bool(f.handled) for f in special) / len(special) if special else None,
-        recall_known_gaps=sum(f.found for f in gaps) / len(gaps) if gaps else None,
+        recall_real_world=(
+            sum(f.found for f in real_world) / len(real_world) if real_world else None
+        ),
         finding_categories=(
             sum(s.finding_categories_correct or 0 for s in categories) / len(flows)
             if categories and flows
@@ -219,13 +224,20 @@ def aggregate(scores: list[FixtureScore]) -> Aggregate:
     )
 
 
+GATED = frozenset(spec.name for spec in BENCHMARK_FIXTURES if spec.gated)
+
+
 def gate(scores: list[FixtureScore]) -> list[str]:
-    """CI gate: 100 percent recall on the canary fixtures and zero false positives on clean."""
+    """CI gate: every flow found in the gated fixtures, known gaps aside, and none on clean."""
     failures = []
     for s in scores:
-        if s.fixture.startswith("canary-") and (s.recall or 0) < 1.0:
-            missed = [f.id for f in s.flows if not f.found]
+        if s.fixture not in GATED:
+            continue
+        if s.group == "clean":
+            if s.predictions > 0:
+                failures.append(f"{s.fixture}: {s.predictions} false positive flows")
+            continue
+        missed = [f.id for f in s.flows if not f.found and not f.known_gap]
+        if missed:
             failures.append(f"{s.fixture}: recall {s.recall:.0%}, missed {', '.join(missed)}")
-        if s.group == "clean" and s.predictions > 0:
-            failures.append(f"{s.fixture}: {s.predictions} false positive flows")
     return failures

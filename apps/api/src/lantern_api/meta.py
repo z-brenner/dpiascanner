@@ -11,6 +11,7 @@ from lantern_api.auth import current_user, services
 from lantern_api.services import Services
 from lantern_decisions.question_sets import available_versions
 from lantern_platform.db import User
+from lantern_platform.retention import retention_status
 from lantern_registry import load_registry
 from lantern_report.findings import DEFAULT_THRESHOLD
 from lantern_report.severity import default_table
@@ -32,6 +33,9 @@ def config(svc: Services = Depends(services)) -> dict[str, Any]:
         "app_slug": svc.settings.github_app_slug,
         "decision_provider": decision_provider(),
         "session_ttl_hours": svc.settings.session_ttl_hours,
+        "public_repos_only": svc.settings.public_repos_only,
+        # The web app states the deletion promise only while `active` is true.
+        "retention": retention_status(svc.db, svc.settings.retention_hours),
     }
 
 

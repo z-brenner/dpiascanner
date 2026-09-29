@@ -77,8 +77,16 @@ def _enqueue(svc: Services, run: Run) -> dict[str, Any]:
     return {"ok": True, "run_id": run.id, "mode": run.mode}
 
 
+PRIVATE_IGNORED = {
+    "ok": True,
+    "ignored": "private repository (this instance scans public ones only)",
+}
+
+
 def handle_push(svc: Services, payload: dict[str, Any]) -> dict[str, Any]:
     repo = payload.get("repository") or {}
+    if svc.settings.public_repos_only and repo.get("private"):
+        return PRIVATE_IGNORED
     default = repo.get("default_branch")
     ref = str(payload.get("ref", ""))
     after = str(payload.get("after", ""))
@@ -121,6 +129,8 @@ def handle_pull_request(svc: Services, payload: dict[str, Any]) -> dict[str, Any
         return {"ok": True, "ignored": f"pull_request.{action}"}
     pr = payload["pull_request"]
     repo = payload["repository"]
+    if svc.settings.public_repos_only and repo.get("private"):
+        return PRIVATE_IGNORED
     installation_id = int((payload.get("installation") or {})["id"])
     ref = parse_repo(repo["full_name"])
     head_sha, base_sha, base_ref = pr["head"]["sha"], pr["base"]["sha"], pr["base"]["ref"]

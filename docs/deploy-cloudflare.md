@@ -2,7 +2,8 @@
 
 The web app runs on Cloudflare Workers. The API, the job worker, Postgres, and Redis run on a
 host you control, reached through a Cloudflare Tunnel. Browsers only ever talk to the site's
-origin.
+origin. To run the backend on Render instead of your own server, follow
+`docs/deploy-render.md` in place of steps 1–3 below.
 
 ```
 browser ──https──> Cloudflare Worker "lantern-web" (apps/web/wrangler.jsonc)
@@ -48,7 +49,8 @@ The proxy (`apps/web/worker/proxy.ts`, tested in `worker.test.ts`) does the foll
   `CF-Access-*` header the client sends.
 - **Added headers.** It sets `X-Forwarded-Host`, `X-Forwarded-Proto`, and `X-Forwarded-For`.
   With `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` set, it also adds the Access
-  service token.
+  service token. With `API_PROXY_SECRET` set, it sends the API's shared secret in
+  `X-Lantern-Proxy-Secret`, which a Render-hosted API requires (`docs/deploy-render.md`).
 - **Request bodies.** It forwards them byte for byte, so GitHub's webhook signatures still
   verify at the API.
 - **Redirects.** It passes redirects to the browser instead of following them, and rewrites

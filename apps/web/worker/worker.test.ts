@@ -108,6 +108,12 @@ describe("forwardHeaders", () => {
     expect(headers.get("cf-connecting-ip")).toBeNull();
   });
 
+  it("sends the API's proxy secret and never forwards one a client made up", () => {
+    const request = new Request(`${SITE}/api/runs`, { headers: { "X-Lantern-Proxy-Secret": "guessed" } });
+    expect(forwardHeaders(request, env()).get("x-lantern-proxy-secret")).toBeNull();
+    expect(forwardHeaders(request, env({ API_PROXY_SECRET: "s3cret" })).get("x-lantern-proxy-secret")).toBe("s3cret");
+  });
+
   it("adds the Access service token when one is configured", () => {
     const headers = forwardHeaders(
       new Request(`${SITE}/api/runs`),

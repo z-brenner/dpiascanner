@@ -16,6 +16,7 @@ persistence.
 | `crypto.py` | Fernet encryption for tokens at rest; sessions stored by SHA-256 |
 | `egress.py` | Outbound host allowlist enforced on every HTTP client and on clone URLs |
 | `storage.py` | Save and load a run's graph, decisions, findings, and reports; `scrub` removes code text other than node snippets |
+| `retention.py` | `purge_expired`: delete runs older than `LANTERN_RETENTION_HOURS`, users who have not signed in for that long, expired sessions, and old bookkeeping; `retention_status`: whether sweeps are recent enough for the site to promise deletion |
 | `pr.py` | The PR comment (one per pull request, found by id or hidden marker) and check run output |
 
 Retention: after a run, the only repository text in the database is each node's snippet,

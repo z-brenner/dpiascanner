@@ -584,7 +584,8 @@ class TaintEngine:
         sink = self.d.sinks.get(call.cid)
         if sink is not None:
             step = self.step(fn, line, "sink-arg", call.text)
-            self.connect(all_args, f"s|{call.cid}", step, fn.fid)
+            payload = all_args + recv_refs if sink.receiver_payload else all_args
+            self.connect(payload, f"s|{call.cid}", step, fn.fid)
             if sink.returns_input:
                 # ORM create/update returns the written row: {data: {...}} -> row fields.
                 unwrap: Op = ("strip", "data", call.span.file, str(line))

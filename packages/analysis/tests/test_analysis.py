@@ -489,15 +489,24 @@ def test_smtp_sinks(tmp_path: Path) -> None:
         '@app.post("/error")\n'  # 30
         "def error(body: Signup) -> None:\n"  # 31
         "    raise smtplib.SMTPException(body.email)\n"  # 32
+        "import emails\n\n\n"  # 33-35
+        '@app.post("/html")\n'  # 36
+        "def html_mail(body: Signup) -> None:\n"  # 37
+        '    msg = emails.html(html=f"<p>{body.phone}</p>", mail_from="a@example.com")\n'  # 38
+        '    result = msg.send(to="ops@example.com")\n'  # 39
+        "    print(result)\n"  # 40
     )
     graph = analyze_repo(tmp_path, "x")
     sinks = {(n.line_start, n.attrs["family"]) for n in graph.nodes.values() if n.kind == "sink"}
-    assert (19, "email") in sinks and (27, "email") in sinks
+    assert {(19, "email"), (27, "email"), (39, "email")} <= sinks
     # The client constructor and exception classes are not sinks.
     assert not {line for line, _ in sinks} & {18, 32}
     pairs = _flow_pairs(graph)
     assert ("email", "mail.py", 19) in pairs
     assert ("phone", "mail.py", 27) in pairs  # through the attachment, a mutator method
+    # emails.html(): the message is the payload of send(), and the result it returns is not.
+    assert ("phone", "mail.py", 39) in pairs
+    assert not [p for p in pairs if p[2] == 40]
 
 
 def test_mutator_methods_carry_taint_into_their_receiver(tmp_path: Path) -> None:

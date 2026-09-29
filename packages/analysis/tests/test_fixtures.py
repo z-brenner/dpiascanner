@@ -234,7 +234,7 @@ def test_dependency_fixture_manifest_locations() -> None:
 
 def test_gaps_fixture_manifest_locations() -> None:
     manifest = load_manifest("gaps-python")
-    assert [f["id"] for f in manifest["flows"]] == ["G01", "G02", "G03", "G04"]
+    assert [f["id"] for f in manifest["flows"]] == ["G01", "G02", "G03", "G04", "G05"]
     for flow in manifest["flows"]:
         for source in flow["sources"]:
             assert_location("gaps-python", source)

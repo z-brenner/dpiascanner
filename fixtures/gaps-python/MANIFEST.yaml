@@ -57,3 +57,19 @@ flows:
     resolution: resolved
     expected_findings: [logging_of_personal_data]
     forbidden_findings: [unresolved_flow]
+
+  - id: G05
+    description: >-
+      Invite email address and a plaintext password sent with the `emails` package: the message
+      content is the receiver of message.send(), not its argument. The SMTP response logged on
+      the next line is not personal data and must not become a flow. This is the shape of
+      send_email in full-stack-fastapi-template, which mails new users their password.
+    sources:
+      - {file: app/invites.py, line: 15, snippet: "invite_in: Invite", field: email, expected_data_category: contact}
+      - {file: app/invites.py, line: 15, snippet: "invite_in: Invite", field: password, expected_data_category: credentials}
+    sink: {file: app/notify.py, line: 17, snippet: "message.send(to=email_to, smtp=smtp_options)", expected_sink_class: communications}
+    expected_transformation: passthrough
+    reachable: true
+    resolution: resolved
+    expected_findings: [personal_data_to_third_party]
+    forbidden_findings: [unresolved_flow]

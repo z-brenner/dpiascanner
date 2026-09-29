@@ -14,7 +14,7 @@ is reported separately and is part of the CI gate, except flows its manifest mar
 
 | System | Recall, planted flows | Precision | False positives, clean | Unresolved and unreachable handled | Finding categories correct | Recall, real-world patterns | Wall clock |
 |---|---|---|---|---|---|---|---|
-| pipeline (stub provider) | 100% | 100% | 0 | 100% | 100% | 100% | 23.6 s |
+| pipeline (stub provider) | 100% | 100% | 0 | 100% | 100% | 100% | 24.2 s |
 | pipeline (Jev provider) | not run: TYPESAFE_API_KEY and TYPESAFE_BASE_URL not set | | | | | | |
 | LLM baseline (claude-opus-5-5) | not run: ANTHROPIC_API_KEY not set | | | | | | |
 
@@ -25,10 +25,10 @@ is reported separately and is part of the CI gate, except flows its manifest mar
 | Fixture | Recall | Precision | Predictions | Time |
 |---|---|---|---|---|
 | canary-python | 100% | 100% | 19 | 2.8 s |
-| canary-typescript | 100% | 100% | 19 | 7.8 s |
-| unregistered-sdk-python | 100% | 100% | 2 | 7.6 s |
-| clean-python | n/a | n/a | 0 | 2.7 s |
-| gaps-python | 100% | 100% | 6 | 2.7 s |
+| canary-typescript | 100% | 100% | 19 | 7.9 s |
+| unregistered-sdk-python | 100% | 100% | 2 | 8.1 s |
+| clean-python | n/a | n/a | 0 | 2.8 s |
+| gaps-python | 100% | 100% | 8 | 2.7 s |
 
 | Flow | Found | Special case handled |
 |---|---|---|
@@ -61,6 +61,7 @@ is reported separately and is part of the CI gate, except flows its manifest mar
 | gaps-python G02 | yes |  |
 | gaps-python G03 | yes |  |
 | gaps-python G04 | yes |  |
+| gaps-python G05 | yes |  |
 
 ## Where each approach failed
 

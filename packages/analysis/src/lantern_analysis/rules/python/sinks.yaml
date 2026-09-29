@@ -103,6 +103,25 @@ rules:
               regex: ^(send_message|sendmail)$
       - pattern: aiosmtplib.send(...)
 
+  # The `emails` package (python-emails): the message built first is what send() delivers.
+  - id: python.sink.email.emails
+    languages: [python]
+    severity: INFO
+    message: "sink=email"
+    metadata: {kind: sink, family: email, receiver_payload: true}
+    patterns:
+      - pattern-either:
+          - pattern-inside: |
+              $MSG = emails.Message(...)
+              ...
+          - pattern-inside: |
+              $MSG = emails.message.Message(...)
+              ...
+          - pattern-inside: |
+              $MSG = emails.html(...)
+              ...
+      - pattern: $MSG.send(...)
+
   - id: python.sink.orm.sqlalchemy-write
     languages: [python]
     severity: INFO

@@ -6,11 +6,11 @@
     "recall_planted": 1.0,
     "recall_real_world": 1.0,
     "special_handled": 1.0,
-    "wall_clock_s": 23.65
+    "wall_clock_s": 24.24
   },
   "fixtures": [
     {
-      "duration_s": 2.8,
+      "duration_s": 2.79,
       "finding_categories_correct": 12,
       "fixture": "canary-python",
       "flows": [
@@ -118,7 +118,7 @@
       "true_predictions": 19
     },
     {
-      "duration_s": 7.83,
+      "duration_s": 7.91,
       "finding_categories_correct": 12,
       "fixture": "canary-typescript",
       "flows": [
@@ -226,7 +226,7 @@
       "true_predictions": 19
     },
     {
-      "duration_s": 7.63,
+      "duration_s": 8.05,
       "finding_categories_correct": 1,
       "fixture": "unregistered-sdk-python",
       "flows": [
@@ -246,7 +246,7 @@
       "true_predictions": 2
     },
     {
-      "duration_s": 2.72,
+      "duration_s": 2.81,
       "finding_categories_correct": null,
       "fixture": "clean-python",
       "flows": [],
@@ -257,7 +257,7 @@
       "true_predictions": 0
     },
     {
-      "duration_s": 2.67,
+      "duration_s": 2.68,
       "finding_categories_correct": null,
       "fixture": "gaps-python",
       "flows": [
@@ -292,13 +292,21 @@
           "known_gap": null,
           "matched": 1,
           "special": null
+        },
+        {
+          "found": true,
+          "handled": null,
+          "id": "G05",
+          "known_gap": null,
+          "matched": 2,
+          "special": null
         }
       ],
       "group": "real-world",
       "precision": 1.0,
-      "predictions": 6,
+      "predictions": 8,
       "recall": 1.0,
-      "true_predictions": 6
+      "true_predictions": 8
     }
   ],
   "gate_failures": [],

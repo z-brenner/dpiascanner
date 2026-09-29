@@ -134,6 +134,8 @@ class SinkSpec:
     family: str
     persists: bool = False
     returns_input: bool = False
+    # The receiver is what gets sent, as with message.send() on a built email message.
+    receiver_payload: bool = False
     registry: RegistryEntry | None = None
     method: str | None = None
     event_path: str | None = None
@@ -610,6 +612,9 @@ class Detector:
             if match.rule_id not in existing.rule_ids:
                 existing.rule_ids.append(match.rule_id)
             existing.persists = existing.persists or bool(match.metadata.get("persists"))
+            existing.receiver_payload = existing.receiver_payload or bool(
+                match.metadata.get("receiver_payload")
+            )
             return
         spec = SinkSpec(
             cid=call.cid,
@@ -619,6 +624,7 @@ class Detector:
             family=match.family,
             persists=bool(match.metadata.get("persists")),
             returns_input=bool(match.metadata.get("returns_input")),
+            receiver_payload=bool(match.metadata.get("receiver_payload")),
             model=(model[:1].upper() + model[1:]) if model else None,
         )
         registry_id = match.metadata.get("registry")

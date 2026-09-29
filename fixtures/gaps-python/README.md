@@ -11,3 +11,4 @@ the analyzer handles it, `known_gap` is removed and the gate covers it.
 | G02 | Session injected with an `Annotated[Session, Depends()]` alias, `session.add` | handled |
 | G03 | `session.exec(select(Model))` read, row fields logged | handled (#2) |
 | G04 | `select(Model).where(...)` bound to a variable, `table=True` class with a schema base | handled (#2) |
+| G05 | Email and plaintext password mailed with the `emails` package; its SMTP response logged | handled (#2) |

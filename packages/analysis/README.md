@@ -73,19 +73,23 @@ graph = analyze_repo("path/to/repo", commit="<sha>")
   `select(Model)` passed to `execute`, `scalars`, `scalar`, or SQLModel's `exec`, chained
   (`.where(...)`) or bound to a variable first. A SQLModel class is a table only when it is
   declared with `table=True`; its non-table bases and siblings are schemas.
-- **SMTP** (`smtplib.SMTP`, `SMTP_SSL`, `LMTP`, `aiosmtplib`) is a sink of family `email`: a
-  third-party disclosure to the mail relay, classified as `communications`.
+- **SMTP** (`smtplib.SMTP`, `SMTP_SSL`, `LMTP`, `aiosmtplib`, and the `emails` package) is a
+  sink of family `email`: a third-party disclosure to the mail relay, classified as
+  `communications`. For `emails`, the built message is the payload of `send()` (the rule sets
+  `receiver_payload`), and the SMTP response it returns is not personal data.
 - The coverage metric is `paths_with_unresolved_step / tainted_paths`.
 
 ## Known gaps (found on real repositories)
 
 Per the project rule, each of these gets a fixture flow first (in `fixtures/gaps-python`,
 marked `known_gap`), then an analyzer change. That fixture is part of the CI gate except for
-flows still marked `known_gap`. SMTP (G01) and SQLModel reads (G03, G04) were fixed in
+flows still marked `known_gap`. SMTP (G01, G05) and SQLModel reads (G03, G04) were fixed in
 z-brenner/dpiascanner#2.
 
-- Email libraries other than `smtplib` and `aiosmtplib` (`emails`, which
-  full-stack-fastapi-template uses, `fastapi-mail`, `nodemailer`) are not sinks yet.
+- `fastapi-mail`, Django's `send_mail`, and `nodemailer` are not sinks yet.
+- SQLModel's `row.sqlmodel_update(data)` is not a mutator, so an update body applied that way
+  does not reach the `session.add(row)` that follows (full-stack-fastapi-template's
+  `crud.update_user` and `update_user_me`).
 - The SMTP server's host is not resolved statically (it is usually a constructor argument
   read from settings), so an `email` sink has no expected endpoints and the report names it
   "an SMTP mail server".

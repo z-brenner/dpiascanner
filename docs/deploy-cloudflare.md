@@ -167,6 +167,7 @@ to `main`, and can be run by hand. It stays a no-op until the repository has the
 | Variable | `LANTERN_API_ORIGIN` | `https://api.example.com` (optional once it is set on the Worker) |
 | Variable | `LANTERN_OPERATOR_CONTACT` | An email address or URL for questions and deletion requests, shown on the About page |
 | Variable | `LANTERN_BACKEND_HOST` | Who hosts the API server, for example `Hetzner Online GmbH (Germany)`, named as a processor |
+| Variable | `LANTERN_BACKUP_DAYS` | How many days the host's database backups keep deleted data, for example `7` on Render. Without it, the About page says "for a while" |
 
 It never deploys code from pull requests: it checks that the CI run came from a push to this
 repository, not only that the branch was named `main`. Anyone with write access can run it by
@@ -230,6 +231,8 @@ Two things are the operator's to fill in:
 - **A contact** (`LANTERN_OPERATOR_CONTACT`). Without it, the page tells people to open an
   issue that names only their GitHub login.
 - **The server's host** (`LANTERN_BACKEND_HOST`).
+- **How long its backups last** (`LANTERN_BACKUP_DAYS`). Deletion removes data from the live
+  database only; a managed database's backups keep it until they expire, and the page says so.
 
 GDPR Art. 13(1)(a) requires the controller's identity and contact details. The page names the
 maintainer of the repository and uses the contact you set.

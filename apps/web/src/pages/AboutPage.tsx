@@ -177,6 +177,13 @@ function DemoDataNotice({ demo, config }: { demo: DemoSettings; config: Config |
             already stored; see below.
           </p>
         )}
+        <p>
+          Deleting removes data from the live database. The host's database backups can still hold it{" "}
+          {demo.backupDays ? `for up to ${period(demo.backupDays * 24)} after that` : "for a while after that"}, until they
+          expire.
+          {configured &&
+            " If a backup is ever restored, scans past their date are still never shown, and the next sweep deletes them again."}
+        </p>
       </section>
 
       <section className="space-y-3">

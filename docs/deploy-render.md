@@ -52,7 +52,8 @@ The plans in `render.yaml` were checked in September 2026.
 4. **Name Render as a processor.** Set the `LANTERN_BACKEND_HOST` repository variable to
    something like `Render Services, Inc. (Frankfurt, Germany)`, so the site's About page
    names it. Render is a US company, so the transfer notes in `docs/deploy-cloudflare.md`
-   apply to it as they do to Cloudflare. Check Render's current data processing terms.
+   apply to it as they do to Cloudflare. Check Render's current data processing terms. Set
+   `LANTERN_BACKUP_DAYS` to `7` too (see "Backups outlive deletion" below).
 5. **Deploy the Worker** with `build:cf`, as in `docs/deploy-cloudflare.md` step 4.
 
 ## Check it
@@ -86,6 +87,14 @@ The `lantern-shared` group in `render.yaml` sets:
 | `LANTERN_RETENTION_HOURS` | `72` | <ul><li>Each scan, with its findings, reports, and code excerpts, is deleted 3 days after it was created.</li><li>A user who has not signed in for 3 days is deleted with their scans.</li><li>The worker sweeps hourly, and the API sweeps when it starts and hourly after that.</li><li>The API never serves a scan older than 3 days, even before a sweep.</li><li>The site states the 3-day promise only while sweeps are running.</li></ul> |
 | `LANTERN_SESSION_TTL_HOURS` | `72` | Sign-ins last 3 days, matching the retention period |
 | `LANTERN_DECISION_PROVIDER` | `stub` | Classification runs on the server, so no model receives code |
+
+**Backups outlive deletion.** A sweep deletes from the live database. Render keeps paid
+databases recoverable to any point in the last 3 days on a Hobby workspace, or 7 on Pro and up,
+and keeps a logical backup you export for 7 days
+([Render docs](https://render.com/docs/postgresql-backups)). So a deleted scan can survive in
+backups for up to 7 more days. Set the repository variable `LANTERN_BACKUP_DAYS` to `7` (or `3`
+on Hobby, if you never export backups by hand) and the About page says so. If you ever restore a
+backup, the API still hides scans past their date and the next sweep deletes them again.
 
 To run the same backend privately, for your own team: remove `LANTERN_PUBLIC_REPOS_ONLY`, set
 `LANTERN_RETENTION_HOURS` to what your policy says (0 keeps everything), and build the web

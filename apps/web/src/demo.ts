@@ -14,6 +14,8 @@ export interface DemoSettings {
   contact: string | null;
   /** Who hosts the API and database, as a processor, for example "Hetzner Online GmbH (Germany)". */
   backendHost: string | null;
+  /** How long the host's database backups keep deleted data, in days, when the operator knows. */
+  backupDays: number | null;
 }
 
 export function sourceUrl(): string {
@@ -27,7 +29,13 @@ export function demoSettings(): DemoSettings | null {
     sourceUrl: sourceUrl(),
     contact: (env.VITE_OPERATOR_CONTACT as string | undefined) || null,
     backendHost: (env.VITE_BACKEND_HOST as string | undefined) || null,
+    backupDays: positiveInt(env.VITE_BACKUP_DAYS as string | undefined),
   };
+}
+
+function positiveInt(value: string | undefined): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 /** A mailto: link for a bare email address, the value itself for anything else. */

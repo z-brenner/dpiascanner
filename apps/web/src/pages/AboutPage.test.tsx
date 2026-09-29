@@ -108,6 +108,7 @@ describe("contactHref", () => {
 describe("the demo's promises follow the server", () => {
   it("states public-only and 3-day deletion only while deletion is running", async () => {
     vi.stubEnv("VITE_DEMO_NOTICE", "1");
+    vi.stubEnv("VITE_BACKUP_DAYS", "7");
     vi.spyOn(api, "config").mockResolvedValue(
       config({
         public_repos_only: true,
@@ -127,6 +128,18 @@ describe("the demo's promises follow the server", () => {
     const banner = screen.getByRole("note", { name: "Demo notice" });
     expect(banner).toHaveTextContent("Public repositories only.");
     expect(banner).toHaveTextContent("Scans are deleted after 3 days.");
+    // Deletion is from the live database; the host's backups outlive it, and the page says for how long.
+    expect(screen.getByText(/backups can still hold it for up to 7 days after that/)).toHaveTextContent(
+      "the next sweep deletes them again",
+    );
+  });
+
+  it("does not put a number on backups the operator has not described", async () => {
+    vi.stubEnv("VITE_DEMO_NOTICE", "1");
+    vi.spyOn(api, "config").mockResolvedValue(config());
+    renderAt(<AboutPage />);
+    const note = await screen.findByText(/backups can still hold it for a while after that/);
+    expect(note).not.toHaveTextContent("next sweep");
   });
 
   it("withdraws the promise when deletion has stopped", async () => {

@@ -261,3 +261,30 @@ def test_pr_comment_and_check_summarize_the_diff() -> None:
     assert out["conclusion"] == "neutral" and out["output"]["title"] == "1 new finding"
     quiet = check_output(FindingsDiff(unchanged=5), {"findings": 5}, None)
     assert quiet["conclusion"] == "success" and quiet["output"]["title"] == "No new findings"
+
+
+def test_redis_queue_socket_outlasts_its_blocking_pop(monkeypatch: pytest.MonkeyPatch) -> None:
+    # redis-py 8 defaults socket_timeout to 5 s; a 5 s BRPOP on an empty queue then timed out
+    # and killed the worker on its first idle wait.
+    import redis
+
+    from lantern_platform.queue import MAX_BLOCK_S, SOCKET_TIMEOUT_S, QueueError, RedisQueue
+
+    queue = RedisQueue("redis://queue.invalid:6379/0")
+    assert queue.client.connection_pool.connection_kwargs["socket_timeout"] == SOCKET_TIMEOUT_S
+    waits: list[int] = []
+
+    def brpop(keys: list[str], timeout: int) -> None:
+        waits.append(timeout)
+        return None
+
+    monkeypatch.setattr(queue.client, "brpop", brpop)
+    assert queue.dequeue(timeout=5) is None and queue.dequeue(timeout=600) is None
+    assert waits == [5, MAX_BLOCK_S] and max(waits) < SOCKET_TIMEOUT_S
+
+    def unreachable(keys: list[str], timeout: int) -> None:
+        raise redis.exceptions.TimeoutError("Timeout reading from socket")
+
+    monkeypatch.setattr(queue.client, "brpop", unreachable)
+    with pytest.raises(QueueError):
+        queue.dequeue()

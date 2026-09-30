@@ -29,7 +29,7 @@ from lantern_platform.crypto import TokenCipher
 from lantern_platform.db import Database
 from lantern_platform.egress import EgressPolicy
 from lantern_platform.github import GitHub
-from lantern_platform.queue import JobQueue, RedisQueue
+from lantern_platform.queue import JobQueue, QueueError, RedisQueue
 from lantern_platform.retention import SWEEP_INTERVAL, purge_expired
 from lantern_platform.tokens import DatabaseTokenStore
 from lantern_worker.dynamic.base import Backend
@@ -157,6 +157,7 @@ def serve(
     *,
     clock: Callable[[], float] = time.monotonic,
     iterations: int | None = None,
+    pause: Callable[[float], None] = time.sleep,
 ) -> None:
     db = Database(settings.database_url)
     db.create_all()
@@ -168,7 +169,14 @@ def serve(
         if settings.retention_hours > 0 and clock() >= next_sweep:
             sweep(settings, db)
             next_sweep = clock() + SWEEP_INTERVAL.total_seconds()
-        run_id = queue.dequeue(timeout=5)
+        try:
+            run_id = queue.dequeue(timeout=5)
+        except QueueError:
+            # A dropped connection or a restarting queue is not a reason to exit; the next
+            # attempt reconnects.
+            log.warning("run queue unavailable; retrying in 5 s", exc_info=True)
+            pause(5)
+            continue
         if run_id:
             log.info("run %s: start", run_id)
             code = supervise(run_id, settings, db)

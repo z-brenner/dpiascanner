@@ -40,7 +40,9 @@ services:
     plan: 0.5c-512mb
     dockerfilePath: ./infra/Dockerfile
     dockerContext: .
-    dockerCommand: /bin/sh -c "uvicorn lantern_api.main:app --host 0.0.0.0 --port ${PORT:-10000}"
+    # Render runs this without a shell and passes quotes through literally, so no `sh -c`.
+    # 10000 is the port Render routes web services to by default.
+    dockerCommand: uvicorn lantern_api.main:app --host 0.0.0.0 --port 10000
     healthCheckPath: /healthz
     autoDeployTrigger: checksPass
     envVars:

@@ -4,6 +4,8 @@ export type StageName = "clone" | "parse" | "graph" | "registry" | "classify" | 
 
 export interface Config {
   install_url: string;
+  /** GitHub's authorization page, for someone who installed the app before; null until configured. */
+  signin_url: string | null;
   app_slug: string;
   /** "stub" classifies on the server; "jev" sends redacted summaries to TypeSafe's Jev. */
   decision_provider: string;

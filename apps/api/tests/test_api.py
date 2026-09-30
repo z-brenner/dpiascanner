@@ -109,6 +109,11 @@ def test_config_is_public_and_settings_need_a_session(
     monkeypatch.delenv("LANTERN_DECISION_PROVIDER", raising=False)
     config = client.get("/config").json()
     assert config["install_url"].endswith("/apps/katz-dpia/installations/new")
+    # Returning users sign in through GitHub's authorization page, back to the same callback.
+    assert config["signin_url"] == (
+        "https://github.com/login/oauth/authorize?client_id=Iv1.client"
+        "&redirect_uri=http%3A%2F%2Fweb.test%2Fauth%2Fgithub%2Fcallback"
+    )
     # The web app's data notice says whether classification leaves the server.
     assert config["decision_provider"] == "stub" and config["session_ttl_hours"] == 24 * 7
     monkeypatch.setenv("LANTERN_DECISION_PROVIDER", "jev")

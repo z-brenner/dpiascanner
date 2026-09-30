@@ -16,6 +16,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
+from urllib.parse import urlencode
 
 import httpx
 import jwt
@@ -311,3 +312,19 @@ class GitHub:
         return (
             f"{self.settings.github_web_url}/apps/{self.settings.github_app_slug}/installations/new"
         )
+
+    def signin_url(self) -> str | None:
+        """GitHub's user authorization page for someone who installed the app before.
+
+        The callback is the one installation uses, so it must be among the app's callback
+        URLs. None until the app's client id is configured.
+        """
+        if not self.settings.github_client_id:
+            return None
+        query = urlencode(
+            {
+                "client_id": self.settings.github_client_id,
+                "redirect_uri": f"{self.settings.web_url.rstrip('/')}/auth/github/callback",
+            }
+        )
+        return f"{self.settings.github_web_url}/login/oauth/authorize?{query}"

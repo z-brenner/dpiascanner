@@ -6,6 +6,7 @@ import { button, primaryButton } from "../components/Badge";
 import { BeforeYouInstall } from "../components/DemoNotice";
 import { useConfig } from "../config";
 import { demoSettings } from "../demo";
+import { SignInLink } from "../signin";
 
 const STEPS: [string, string, string][] = [
   [
@@ -65,6 +66,14 @@ export function ConnectPage() {
               </a>
             )}
           </div>
+          {config?.signin_url && installations === null && (
+            <p className="text-sm text-ink-2">
+              Installed it before?{" "}
+              <SignInLink url={config.signin_url} className="link text-ink">
+                Sign in with GitHub
+              </SignInLink>
+            </p>
+          )}
           <p className="max-w-xl text-xs leading-relaxed text-ink-3">
             The GitHub App asks for read access to contents and metadata, and write access to checks and pull request
             comments. It cannot change your code.

@@ -33,6 +33,9 @@ The plans in `render.yaml` were checked in September 2026.
 
 ## Steps
 
+Starting with no accounts? `docs/setup-from-scratch.md` puts these steps and the Cloudflare and
+GitHub ones in order.
+
 1. **GitHub App.** Create it as in `docs/github-app.md`. Point every URL at the site, as in
    `docs/deploy-cloudflare.md` step 5; the webhook URL is `https://<site>/api/webhooks/github`.
 2. **Blueprint.** In Render, go to **New → Blueprint** and pick this repository. Render reads

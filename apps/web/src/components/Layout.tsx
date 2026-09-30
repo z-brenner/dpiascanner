@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { ApiError, api } from "../api/client";
 import type { User } from "../api/types";
-import { ConfigProvider } from "../config";
+import { ConfigProvider, useConfig } from "../config";
 import { sourceUrl } from "../demo";
+import { SignInLink } from "../signin";
+import { ghostButton } from "./Badge";
 import { DemoBanner } from "./DemoNotice";
 import { Mark } from "./ui";
 
@@ -14,7 +16,8 @@ const nav = ({ isActive }: { isActive: boolean }) =>
 const AVATAR_HOST = "https://avatars.githubusercontent.com/";
 
 export function Layout() {
-  const [user, setUser] = useState<User | null>(null);
+  // undefined while loading, null when signed out.
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   useEffect(() => {
     api.me().then(setUser).catch(() => setUser(null));
   }, []);
@@ -39,14 +42,7 @@ export function Layout() {
                 About
               </NavLink>
             </nav>
-            {user && (
-              <div className="ml-auto flex items-center gap-2 text-sm text-ink-2">
-                {user.avatar_url?.startsWith(AVATAR_HOST) && (
-                  <img src={user.avatar_url} alt="" className="h-6 w-6 rounded-full border border-line" />
-                )}
-                <span className="hidden sm:inline">{user.login}</span>
-              </div>
-            )}
+            <Account user={user} />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
@@ -71,6 +67,28 @@ export function Layout() {
       </div>
     </ConfigProvider>
   );
+}
+
+function Account({ user }: { user: User | null | undefined }) {
+  const config = useConfig();
+  if (user) {
+    return (
+      <div className="ml-auto flex items-center gap-2 text-sm text-ink-2">
+        {user.avatar_url?.startsWith(AVATAR_HOST) && (
+          <img src={user.avatar_url} alt="" className="h-6 w-6 rounded-full border border-line" />
+        )}
+        <span className="hidden sm:inline">{user.login}</span>
+      </div>
+    );
+  }
+  if (user === null && config?.signin_url) {
+    return (
+      <SignInLink url={config.signin_url} className={`${ghostButton} ml-auto`}>
+        Sign in
+      </SignInLink>
+    );
+  }
+  return null;
 }
 
 /** Runs an API call; sends the user to Connect on 401. */

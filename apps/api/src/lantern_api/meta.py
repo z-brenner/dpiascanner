@@ -30,6 +30,8 @@ def config(svc: Services = Depends(services)) -> dict[str, Any]:
     its data notice depends on (whether classification leaves this server)."""
     return {
         "install_url": svc.github.install_url(),
+        # For someone who installed the app before: sign in without installing again.
+        "signin_url": svc.github.signin_url(),
         "app_slug": svc.settings.github_app_slug,
         "decision_provider": decision_provider(),
         "session_ttl_hours": svc.settings.session_ttl_hours,

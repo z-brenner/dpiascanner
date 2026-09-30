@@ -4,7 +4,8 @@ A privacy impact assessment tool that runs against real source code instead of a
 
 Katz was first called Lantern. Code identifiers keep that name: the `lantern_*` packages, the `LANTERN_*` settings, and the per-repository `lantern.yml`.
 
-Start with [CLAUDE.md](CLAUDE.md), the design contract.
+Start with [CLAUDE.md](CLAUDE.md), the design contract. To run the public demo from no accounts at all,
+follow [docs/setup-from-scratch.md](docs/setup-from-scratch.md).
 
 ```bash
 make install   # uv + pnpm

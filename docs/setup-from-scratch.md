@@ -12,7 +12,7 @@ Cloudflare ──site address──> GitHub App ──app keys──> Render ─
 ```
 
 It costs about $20 a month on Render (`docs/deploy-render.md`). The Cloudflare Workers free
-plan and GitHub are free.
+plan, including its builds, and GitHub are free.
 
 Keep a scratch note open while you work. You will collect these values:
 
@@ -28,25 +28,37 @@ password manager, not in the repository or a chat.
 ## 1. Cloudflare: put the site up
 
 1. Create a Cloudflare account. Open **Workers & Pages**. If Cloudflare has not given you a
-   `workers.dev` subdomain yet, choose one; the deploy fails without it. Your site will be
-   `https://katzscanner.<subdomain>.workers.dev`. That address is `SITE`. You don't need to
-   create the Worker yourself: the deploy in step 5 creates `katzscanner`, or replaces what a
-   Worker of that name serves (such as Cloudflare's "Hello world" starter).
-2. Create an API token under **My Profile → API Tokens → Create Token**:
-   - use the **Edit Cloudflare Workers** template;
-   - under **Account Resources**, pick your account;
-   - under **Zone Resources**, pick all zones from your account.
+   `workers.dev` subdomain yet, choose one. Your site will be
+   `https://katzscanner.<subdomain>.workers.dev`. That address is `SITE`.
+2. Create the Worker from this repository. In **Workers & Pages**, choose **Create → Import a
+   repository**, connect GitHub, pick this repository, and name the Worker `katzscanner`. It
+   must be exactly that name, because `apps/web/wrangler.jsonc` names it.
+3. The site lives in `apps/web`, not at the top of the repository, so Cloudflare's default
+   commands fail. Under **katzscanner → Settings → Build**, set these fields:
 
-   Copy the token. Cloudflare shows it once.
-3. Copy your **Account ID**. It is shown on the Workers & Pages overview and on your account's
-   home page.
-4. In this GitHub repository, go to **Settings → Secrets and variables → Actions → New
-   repository secret** and add:
-   - `CLOUDFLARE_API_TOKEN`, the token;
-   - `CLOUDFLARE_ACCOUNT_ID`, the account ID.
-5. Go to **Actions → deploy-web → Run workflow**, on `main`. When it finishes, open `SITE`.
-   - The pages load.
+   | Field | Value |
+   |---|---|
+   | Root directory | Leave it empty, or `/` for the repository's top. |
+   | Build command | `pnpm --filter @katz/web build:cf` |
+   | Deploy command | `pnpm --filter @katz/web exec wrangler deploy` |
+   | Non-production branch deploy command (or **Preview command**) | `pnpm --filter @katz/web exec wrangler versions upload` |
+
+   Cloudflare installs the dependencies itself with pnpm, which it detects from the lockfile.
+   If that step fails, add the build variable `SKIP_DEPENDENCY_INSTALL` = `1` and put
+   `pnpm install --frozen-lockfile && ` in front of the build command.
+4. Start a build. Either retry the failed one under **katzscanner → Deployments**, or push to
+   `main`. When it finishes, open `SITE`.
+   - The Katz home page loads.
    - Sign-in and scans don't work yet: `/api/*` answers 503 until step 4 connects the API.
+
+**Alternative: GitHub Actions.** You can deploy from this repository's `deploy-web` workflow
+instead of Cloudflare's builds. It needs these repository secrets:
+- `CLOUDFLARE_API_TOKEN`, from **My Profile → API Tokens → Create Token** with the **Edit
+  Cloudflare Workers** template;
+- `CLOUDFLARE_ACCOUNT_ID`.
+
+Then run **Actions → deploy-web**. Use one route or the other, not both. The workflow does
+nothing while those secrets are absent.
 
 ## 2. GitHub App: create it by hand
 
@@ -102,18 +114,24 @@ Create the app. On its settings page, collect:
 
 ## 4. Connect the site to the API
 
-1. In Cloudflare, go to **Workers & Pages → katzscanner → Settings → Variables and Secrets →
-   Add**. Choose type **Secret**, name it `API_PROXY_SECRET`, and paste the value of
-   `LANTERN_PROXY_SECRET`.
-2. In this GitHub repository, go to **Settings → Secrets and variables → Actions → Variables**
-   and add:
-   - `LANTERN_API_ORIGIN`: `API`.
-   - `LANTERN_BACKEND_HOST`: `Render Services, Inc. (US company; servers in Frankfurt, Germany)`.
-   - `LANTERN_BACKUP_DAYS`: `7`.
-   - `LANTERN_OPERATOR_CONTACT`: an email address or URL you are happy to publish. It is where
+1. In Cloudflare, go to **Workers & Pages → katzscanner → Settings → Variables and Secrets**
+   and add two entries:
+   - type **Secret**, named `API_PROXY_SECRET`, with the value of `LANTERN_PROXY_SECRET`;
+   - type **Text**, named `API_ORIGIN`, with the value `API`.
+
+   These are used while the site runs, and deploys keep them.
+2. Under **katzscanner → Settings → Build → Build variables and secrets**, add the demo
+   notice's facts. They are built into the page, so they belong to the build, not the running
+   site:
+   - `VITE_BACKEND_HOST`: `Render Services, Inc. (US company; servers in Frankfurt, Germany)`.
+   - `VITE_BACKUP_DAYS`: `7`.
+   - `VITE_OPERATOR_CONTACT`: an email address or URL you are happy to publish. It is where
      people ask for deletion.
-3. Go to **Actions → deploy-web → Run workflow** again. The site's demo notice is built in at
-   deploy time, so it needs a new deploy to pick up these values.
+3. Build again: retry the latest build under **Deployments**, or push to `main`.
+
+On the GitHub Actions route, the same values go in this repository's **Settings → Secrets and
+variables → Actions → Variables** instead: `LANTERN_API_ORIGIN`, `LANTERN_BACKEND_HOST`,
+`LANTERN_BACKUP_DAYS`, `LANTERN_OPERATOR_CONTACT`. Then run **deploy-web** again.
 
 ## 5. Check it end to end
 

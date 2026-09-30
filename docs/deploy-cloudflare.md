@@ -157,7 +157,11 @@ the zone must be on Cloudflare. Either add this to `wrangler.jsonc`:
 or add the domain in the dashboard, under **Workers → katzscanner → Settings → Domains &
 Routes**.
 
-**Continuous deploys.** `.github/workflows/deploy-web.yml` deploys after `ci` passes on a push
+**Continuous deploys with Cloudflare's builds.** Connect the repository to the Worker in the
+dashboard (Workers Builds), with the build and deploy commands in `docs/setup-from-scratch.md`
+step 1. Cloudflare then builds `main` on every push, and no API token is stored in GitHub.
+
+**Continuous deploys with GitHub Actions.** `.github/workflows/deploy-web.yml` deploys after `ci` passes on a push
 to `main`, and can be run by hand. It stays a no-op until the repository has these:
 
 | Kind | Name | Value |

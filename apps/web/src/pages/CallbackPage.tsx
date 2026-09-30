@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { ErrorText, Loading } from "../components/ui";
+import { stateMatches } from "../signin";
 
-/** GitHub sends the browser here after installation with ?code&installation_id&setup_action. */
+/**
+ * GitHub sends the browser here after installation (?code&installation_id&setup_action) and
+ * after sign-in (?code&state).
+ */
 export function CallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -15,6 +19,10 @@ export function CallbackPage() {
     const code = params.get("code");
     if (!code) {
       setError("GitHub did not return an authorization code.");
+      return;
+    }
+    if (!stateMatches(params.get("state"))) {
+      setError("This sign-in did not start in this browser. Sign in again from the home page.");
       return;
     }
     api

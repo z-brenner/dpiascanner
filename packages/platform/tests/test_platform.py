@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import datetime as dt
 import hashlib
 import hmac
@@ -125,6 +126,24 @@ def test_token_cipher() -> None:
     with pytest.raises(TokenCipherError):
         TokenCipher("")
     assert hash_session_token("abc") != "abc" and len(hash_session_token("abc")) == 64
+
+
+def test_token_cipher_accepts_host_generated_secrets() -> None:
+    # A real Fernet key is used as is, so existing deployments keep decrypting their tokens.
+    key = Fernet.generate_key().decode()
+    assert Fernet(key.encode()).decrypt(TokenCipher(key).encrypt("ghs_a").encode()) == b"ghs_a"
+    # Render's generateValue (base64 of 256 bits) may come without padding; other hosts use hex.
+    raw = bytes(range(32))
+    for secret in (
+        base64.b64encode(raw).decode().rstrip("="),
+        raw.hex(),
+        f"  {base64.b64encode(raw).decode()}\n",
+    ):
+        blob = TokenCipher(secret).encrypt("ghs_b")
+        # The API and the worker build their ciphers separately and must agree.
+        assert TokenCipher(secret).decrypt(blob) == "ghs_b"
+    with pytest.raises(TokenCipherError, match="at least 32 characters"):
+        TokenCipher("too-short-to-be-a-secret")
 
 
 def test_scrub_blanks_code_but_keeps_facts() -> None:

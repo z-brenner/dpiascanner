@@ -3,7 +3,7 @@
   "url": "https://katz.example.com",
   "description": "Repo-grounded data protection impact assessments: traces personal data through your code and reports it with evidence.",
   "hook_attributes": {
-    "url": "https://api.katz.example.com/webhooks/github",
+    "url": "https://katz.example.com/api/webhooks/github",
     "active": true
   },
   "redirect_url": "https://katz.example.com/github/app-created",

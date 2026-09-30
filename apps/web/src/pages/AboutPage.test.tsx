@@ -11,6 +11,7 @@ function config(overrides: Partial<Config> = {}): Config {
   return {
     install_url: "https://github.com/apps/lantern-dpia/installations/new",
     app_slug: "lantern-dpia",
+    signin_url: null,
     decision_provider: "stub",
     session_ttl_hours: 168,
     public_repos_only: false,

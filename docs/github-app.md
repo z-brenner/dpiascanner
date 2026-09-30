@@ -23,11 +23,14 @@ Katz asks for nothing else: no write access to code, no issues, no members, no s
 
 ## Create the app
 
-1. Edit `infra/github-app-manifest.json`. Replace `katz.example.com` with the web app's
-   origin and `api.katz.example.com` with the API's origin. On Cloudflare
-   (`docs/deploy-cloudflare.md`) the API is served under the site at `/api`, so the webhook
-   URL is `https://katz.example.com/api/webhooks/github`. Set `public` to `true` only if
-   other organizations should be able to install it.
+The simplest way is by hand, in GitHub's settings: `docs/setup-from-scratch.md` step 2 lists every
+field. The manifest flow below does the same from `infra/github-app-manifest.json`.
+
+1. Edit `infra/github-app-manifest.json` and replace `katz.example.com` with the web app's
+   origin. On Cloudflare (`docs/deploy-cloudflare.md`) the API is served under the site at
+   `/api`, so the webhook URL is `https://katz.example.com/api/webhooks/github`. If your API
+   has its own public origin instead, point the webhook there (`/webhooks/github`). Set
+   `public` to `true` only if other accounts should be able to install it.
 2. Register it through the manifest flow. Serve this form from any page and submit it
    (for an organization, post to
    `https://github.com/organizations/<org>/settings/apps/new` instead):
@@ -57,9 +60,9 @@ Katz asks for nothing else: no write access to code, no issues, no members, no s
 | `GITHUB_APP_ID` | `id` from the conversion |
 | `GITHUB_APP_PRIVATE_KEY` | `pem` (literal `\n` sequences are accepted), or `GITHUB_APP_PRIVATE_KEY_PATH` |
 | `GITHUB_WEBHOOK_SECRET` | `webhook_secret`. Without it every webhook is rejected. |
-| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | For the user authorization during installation |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | For the user authorization during installation and sign-in |
 | `GITHUB_APP_SLUG` | `slug`, used for "install the app" links |
-| `LANTERN_TOKEN_KEY` | A Fernet key; user and installation tokens are encrypted with it at rest. Generate with `python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'` |
+| `LANTERN_TOKEN_KEY` | Encrypts user and installation tokens at rest. A Fernet key (`python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'`), or any random secret of at least 32 characters, such as the one Render generates, which is hashed into a key |
 | `LANTERN_WEB_URL` | The web app's origin (CORS and links in PR comments) |
 | `DATABASE_URL`, `REDIS_URL` | Postgres (`postgresql+psycopg://...`) and Redis |
 
@@ -73,6 +76,9 @@ installation tokens are minted again on demand.
   posts them to `POST /auth/github/callback`. The API exchanges the code for a
   user-to-server token, records the user's installations, and sets an HttpOnly session
   cookie (stored server side by hash).
+- **Sign-in.** Someone who installed the app before signs in through GitHub's authorization
+  page (`/config` → `signin_url`), which returns to the same callback with `code` and a
+  `state` the web app checks against the one it stored. No installation happens.
 - **Repositories.** `GET /repos` lists what the user can reach through the app's
   installations. `POST /repos/resolve` accepts `https://github.com/o/r`, `github.com/o/r`,
   `o/r`, and `git@github.com:o/r.git`, and says whether the repository is installed, public

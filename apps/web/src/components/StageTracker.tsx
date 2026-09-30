@@ -11,11 +11,11 @@ const LABELS: Record<string, string> = {
 };
 
 const MARK: Record<string, { symbol: string; className: string; text: string }> = {
-  done: { symbol: "✓", className: "bg-emerald-700 text-white", text: "done" },
-  running: { symbol: "•", className: "bg-sky-700 text-white animate-pulse", text: "running" },
-  failed: { symbol: "✕", className: "bg-red-700 text-white", text: "failed" },
-  skipped: { symbol: "–", className: "bg-stone-400 text-white dark:bg-stone-600", text: "skipped" },
-  pending: { symbol: "", className: "border border-stone-400 dark:border-stone-600", text: "pending" },
+  done: { symbol: "✓", className: "border-ink bg-ink text-paper", text: "done" },
+  running: { symbol: "", className: "border-accent bg-surface ring-4 ring-accent/15", text: "running" },
+  failed: { symbol: "✕", className: "border-critical bg-critical text-white", text: "failed" },
+  skipped: { symbol: "–", className: "border-dashed border-line-strong bg-surface text-ink-3", text: "skipped" },
+  pending: { symbol: "", className: "border-line-strong bg-surface", text: "pending" },
 };
 
 function duration(stage: Stage): string {
@@ -26,21 +26,30 @@ function duration(stage: Stage): string {
 
 export function StageTracker({ stages }: { stages: Stage[] }) {
   return (
-    <ol className="flex flex-wrap gap-x-6 gap-y-3" aria-label="Run stages">
-      {stages.map((stage) => {
+    <ol className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-7 sm:gap-0" aria-label="Run stages">
+      {stages.map((stage, index) => {
         const mark = MARK[stage.status] ?? MARK.pending!;
+        const done = stage.status === "done";
         return (
-          <li key={stage.stage} className="flex items-center gap-2 text-sm">
+          <li key={stage.stage} className="relative flex items-center gap-3 sm:flex-col sm:items-start sm:gap-2.5">
+            {index > 0 && (
+              <span
+                aria-hidden
+                className={`absolute top-[11px] right-[calc(100%-4px)] hidden h-px w-[calc(100%-28px)] sm:block ${
+                  done || stage.status === "running" ? "bg-ink" : "bg-line-strong"
+                }`}
+              />
+            )}
             <span
               aria-hidden
-              className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${mark.className}`}
+              className={`relative z-[1] inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${mark.className}`}
             >
-              {mark.symbol}
+              {stage.status === "running" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent" /> : mark.symbol}
             </span>
-            <span>
-              <span className="font-medium">{LABELS[stage.stage] ?? stage.stage}</span>
+            <span className="leading-tight">
+              <span className="text-sm font-medium text-ink">{LABELS[stage.stage] ?? stage.stage}</span>
               <span className="sr-only">: {mark.text}</span>
-              <span className="block text-xs text-stone-500">{stage.status === "done" ? duration(stage) : mark.text}</span>
+              <span className="num block text-xs text-ink-3">{done ? duration(stage) : mark.text}</span>
             </span>
           </li>
         );

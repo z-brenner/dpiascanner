@@ -174,7 +174,7 @@ def validate(path: str | None = None, *, with_urls: bool = False) -> Report:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Validate the Lantern SDK registry.")
+    parser = argparse.ArgumentParser(description="Validate the Katz SDK registry.")
     parser.add_argument("--path", default=None)
     parser.add_argument("--check-urls", action="store_true")
     parser.add_argument("--json", action="store_true")

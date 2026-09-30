@@ -16,7 +16,7 @@ apps/web/dist/
 .wrangler/
 .dev.vars
 
-# Lantern runtime
+# Katz runtime
 .lantern/
 *.jsonl.tmp
 .env

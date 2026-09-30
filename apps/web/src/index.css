@@ -1,14 +1,134 @@
 @import "tailwindcss";
+/* Self-hosted (the CSP allows fonts from 'self' only). Latin subsets load on demand. */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/newsreader/opsz.css";
 
-@theme {
-  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+/*
+ * Design tokens. Paper and ink, one warm accent (the lantern) kept for the mark and focus, and
+ * a fixed status scale for severity that always travels with a text label. Components use the
+ * semantic names (bg-paper, text-ink-2, border-line); dark mode swaps the values, not the
+ * classes.
+ */
+@theme inline {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: "Newsreader Variable", ui-serif, Georgia, serif;
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-critical: var(--critical);
+  --color-serious: var(--serious);
+  --color-warning: var(--warning);
+  --color-good: var(--good);
+  --color-meter: var(--meter);
+  --color-meter-track: var(--meter-track);
 }
 
-html {
-  color-scheme: light dark;
+:root {
+  color-scheme: light;
+  --paper: #f7f6f2;
+  --surface: #ffffff;
+  --sunken: #efede7;
+  --ink: #1b1a17;
+  --ink-2: #55524b;
+  --ink-3: #85817a;
+  --line: #e3e0d8;
+  --line-strong: #cbc7bd;
+  --accent: #c2410c;
+  --accent-soft: #fbe9dc;
+  /* Status steps (fixed across themes); severity always has a word beside it. */
+  --critical: #d03b3b;
+  --serious: #ec835a;
+  --warning: #fab219;
+  --good: #0ca30c;
+  /* Probability meters: one hue, the track a lighter step of it. */
+  --meter: #2a78d6;
+  --meter-track: #cde2fb;
 }
 
-body {
-  @apply bg-stone-50 text-stone-900 dark:bg-stone-950 dark:text-stone-100;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #121210;
+    --surface: #1a1a18;
+    --sunken: #22221f;
+    --ink: #f1efe9;
+    --ink-2: #bdb9b0;
+    --ink-3: #8b877e;
+    --line: #2c2b27;
+    --line-strong: #3d3b36;
+    --accent: #f08a4b;
+    --accent-soft: #3a2518;
+    --meter: #3987e5;
+    --meter-track: #184f95;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #121210;
+  --surface: #1a1a18;
+  --sunken: #22221f;
+  --ink: #f1efe9;
+  --ink-2: #bdb9b0;
+  --ink-3: #8b877e;
+  --line: #2c2b27;
+  --line-strong: #3d3b36;
+  --accent: #f08a4b;
+  --accent-soft: #3a2518;
+  --meter: #3987e5;
+  --meter-track: #184f95;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-paper font-sans text-ink;
+    font-feature-settings: "ss01", "cv11";
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code,
+  kbd,
+  pre {
+    @apply font-mono;
+  }
+}
+
+@layer components {
+  /* A heading set in the document face. */
+  .display {
+    @apply font-serif tracking-tight text-ink;
+    font-optical-sizing: auto;
+  }
+  .eyebrow {
+    @apply font-mono text-[11px] font-medium tracking-[0.08em] text-ink-3 uppercase;
+  }
+  .link {
+    @apply underline decoration-line-strong decoration-1 underline-offset-[3px] transition-colors hover:decoration-ink;
+  }
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
 }

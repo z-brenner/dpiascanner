@@ -1,4 +1,4 @@
-"""Enumerate the files to analyze and read per-repository Lantern settings."""
+"""Enumerate the files to analyze and read per-repository Katz settings."""
 
 from __future__ import annotations
 

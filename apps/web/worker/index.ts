@@ -1,5 +1,5 @@
 /**
- * Cloudflare Worker for the Lantern web app.
+ * Cloudflare Worker for the Katz web app.
  *
  * Cloudflare serves the Vite build (dist/) directly, falling back to index.html for client
  * routes; see wrangler.jsonc. Only /api/* runs this code. It forwards the request to the API

@@ -1,4 +1,4 @@
-"""Run Lantern's own fixtures on the host, against fixtures/mock-server.
+"""Run Katz's own fixtures on the host, against fixtures/mock-server.
 
 This backend exists so the verifier can be tested without Docker. It refuses any repository
 outside the fixtures directory: code from a scanned repository runs only in the Docker
@@ -148,7 +148,7 @@ class LocalFixtureBackend:
         repo = repo.resolve()
         if not repo.is_relative_to(self.fixtures_root) or repo == self.fixtures_root:
             raise PermissionError(
-                "the local backend runs Lantern's own fixtures only; "
+                "the local backend runs Katz's own fixtures only; "
                 "repository code runs in the Docker sandbox"
             )
         language = detect_language(repo)

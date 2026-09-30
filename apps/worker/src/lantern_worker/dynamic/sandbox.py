@@ -18,7 +18,7 @@ Layout of one run:
 
 Dependency installation happens in ``docker build``, which needs registry access. Install
 scripts therefore run with network access, inside the build container, with nothing in the
-build context but the repository and Lantern's CA files. The application itself never runs
+build context but the repository and Katz's CA files. The application itself never runs
 with network access.
 
 Environment for building behind a TLS-intercepting proxy (development and CI only):
@@ -120,8 +120,8 @@ def generate_ca(directory: Path) -> tuple[Path, Path]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     name = x509.Name(
         [
-            x509.NameAttribute(NameOID.COMMON_NAME, f"Lantern sandbox CA {uuid.uuid4().hex[:8]}"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Lantern dynamic verification"),
+            x509.NameAttribute(NameOID.COMMON_NAME, f"Katz sandbox CA {uuid.uuid4().hex[:8]}"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Katz dynamic verification"),
         ]
     )
     now = dt.datetime.now(dt.UTC)

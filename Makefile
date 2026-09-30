@@ -56,7 +56,7 @@ worker: ## Run the worker
 	$(UV) run python -m lantern_worker
 
 web: ## Run the web dev server
-	$(PNPM) --filter @lantern/web dev
+	$(PNPM) --filter @katz/web dev
 
 run: services ## Start services, API, worker, and web together
 	$(MAKE) -j3 api worker web

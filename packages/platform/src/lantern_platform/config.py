@@ -20,6 +20,19 @@ def _env(name: str, default: str = "") -> str:
     return os.environ.get(name, default)
 
 
+def normalize_database_url(url: str) -> str:
+    """Hosts such as Render hand out postgres:// or postgresql:// URLs; SQLAlchemy needs the
+    driver named to use psycopg 3."""
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix) :]
+    return url
+
+
+def _flag(name: str) -> bool:
+    return _env(name).strip().lower() in ("1", "true", "yes", "on")
+
+
 def _private_key() -> str:
     """GITHUB_APP_PRIVATE_KEY holds the PEM itself; literal \\n sequences are accepted."""
     key = _env("GITHUB_APP_PRIVATE_KEY")
@@ -38,7 +51,7 @@ class Settings:
     github_webhook_secret: str = ""
     github_client_id: str = ""
     github_client_secret: str = ""
-    github_app_slug: str = "lantern-dpia"
+    github_app_slug: str = "katz-dpia"
     github_api_url: str = "https://api.github.com"
     github_web_url: str = "https://github.com"
     token_key: str = ""  # Fernet key for tokens at rest
@@ -51,13 +64,20 @@ class Settings:
     egress_allowlist: tuple[str, ...] = field(default=DEFAULT_EGRESS)
     session_ttl_hours: int = 24 * 7
     cookie_secure: bool = True
+    # Delete runs, and users who have not signed in, after this many hours; 0 keeps them.
+    retention_hours: int = 0
+    # Refuse private repositories (the public demo).
+    public_repos_only: bool = False
+    # When set, every request except /healthz must carry it in X-Katz-Proxy-Secret, so only
+    # the web app's proxy can reach an API whose hostname is public (Render).
+    proxy_secret: str = ""
 
     @classmethod
     def from_env(cls) -> Settings:
         extra = tuple(h.strip() for h in _env("LANTERN_EGRESS_ALLOWLIST").split(",") if h.strip())
         return cls(
-            database_url=_env(
-                "DATABASE_URL", "postgresql+psycopg://lantern:lantern@localhost:5432/lantern"
+            database_url=normalize_database_url(
+                _env("DATABASE_URL", "postgresql+psycopg://lantern:lantern@localhost:5432/lantern")
             ),
             redis_url=_env("REDIS_URL", "redis://localhost:6379/0"),
             github_app_id=_env("GITHUB_APP_ID"),
@@ -65,7 +85,7 @@ class Settings:
             github_webhook_secret=_env("GITHUB_WEBHOOK_SECRET"),
             github_client_id=_env("GITHUB_CLIENT_ID"),
             github_client_secret=_env("GITHUB_CLIENT_SECRET"),
-            github_app_slug=_env("GITHUB_APP_SLUG", "lantern-dpia"),
+            github_app_slug=_env("GITHUB_APP_SLUG", "katz-dpia"),
             github_api_url=_env("GITHUB_API_URL", "https://api.github.com"),
             github_web_url=_env("GITHUB_WEB_URL", "https://github.com"),
             token_key=_env("LANTERN_TOKEN_KEY"),
@@ -77,4 +97,8 @@ class Settings:
             worker_image=_env("LANTERN_WORKER_IMAGE", "lantern-worker:latest"),
             egress_allowlist=DEFAULT_EGRESS + extra,
             cookie_secure=_env("LANTERN_COOKIE_SECURE", "1") != "0",
+            session_ttl_hours=int(_env("LANTERN_SESSION_TTL_HOURS", str(24 * 7))),
+            retention_hours=int(_env("LANTERN_RETENTION_HOURS", "0")),
+            public_repos_only=_flag("LANTERN_PUBLIC_REPOS_ONLY"),
+            proxy_secret=_env("LANTERN_PROXY_SECRET"),
         )

@@ -6,6 +6,7 @@ import { FindingDrawer } from "../components/FindingDrawer";
 import { FindingsTable } from "../components/FindingsTable";
 import { useLoad } from "../components/Layout";
 import { ReportSections } from "../components/ReportSections";
+import { ErrorText, Loading, PageHeader, SectionTitle, StatTile } from "../components/ui";
 
 export function ReportPage() {
   const { runId = "" } = useParams();
@@ -15,27 +16,56 @@ export function ReportPage() {
   const load = useCallback((fid: string) => api.finding(runId, fid), [runId]);
   const entries = useMemo(() => new Map((report.data?.findings ?? []).map((f) => [f.id, f])), [report.data]);
 
-  if (report.error || findings.error) return <p className="text-red-700">{report.error ?? findings.error}</p>;
-  if (!report.data || !findings.data) return <p className="text-sm">Loading…</p>;
+  if (report.error || findings.error) return <ErrorText>{report.error ?? findings.error}</ErrorText>;
+  if (!report.data || !findings.data) return <Loading what="Loading the assessment" />;
   const r = report.data;
+  const items = findings.data.items;
+  const count = (predicate: (f: (typeof items)[number]) => boolean) => items.filter(predicate).length;
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Data protection impact assessment</h1>
-          <p className="text-sm text-stone-600 dark:text-stone-400">
-            <span className="font-mono">{r.run.repo}</span> at <span className="font-mono">{r.run.commit.slice(0, 12)}</span> ·
-            provider {r.summary.provider} · question set {r.summary.question_set_version} · threshold {r.summary.threshold} ·
-            narrative {r.summary.narrative.join(", ")}
-          </p>
-        </div>
-        <div className="ml-auto">
-          <DownloadMenu runId={runId} />
-        </div>
-      </div>
-      <FindingsTable findings={findings.data.items} selectedId={selected} onSelect={(f) => setSelected(f.id)} />
-      <ReportSections sections={r.sections} onCite={setSelected} />
-      {selected && <FindingDrawer findingId={selected} load={load} reportEntry={entries.get(selected)} onClose={() => setSelected(null)} />}
+    <div className="space-y-12">
+      <PageHeader
+        eyebrow={
+          <>
+            DPIA ·{" "}
+            <span className="normal-case">
+              {r.run.repo} @ {r.run.commit.slice(0, 12)}
+            </span>
+          </>
+        }
+        title="Data protection impact assessment"
+        actions={<DownloadMenu runId={runId} />}
+      >
+        <p className="font-mono text-xs leading-relaxed text-ink-3">
+          provider {r.summary.provider} · question set {r.summary.question_set_version} · threshold {r.summary.threshold}{" "}
+          · narrative {r.summary.narrative.join(", ")}
+        </p>
+      </PageHeader>
+
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Findings" value={items.length} />
+        <StatTile label="Critical" value={count((f) => f.severity === "critical")} />
+        <StatTile label="High" value={count((f) => f.severity === "high")} />
+        <StatTile label="Unresolved" value={count((f) => f.status === "unresolved")} note="Need a reviewer's answer" />
+      </dl>
+
+      <section className="space-y-4">
+        <SectionTitle>Findings</SectionTitle>
+        <FindingsTable findings={items} selectedId={selected} onSelect={(f) => setSelected(f.id)} />
+      </section>
+
+      <section className="space-y-2">
+        <SectionTitle>Assessment</SectionTitle>
+        <ReportSections sections={r.sections} onCite={setSelected} />
+      </section>
+
+      {selected && (
+        <FindingDrawer
+          findingId={selected}
+          load={load}
+          reportEntry={entries.get(selected)}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </div>
   );
 }

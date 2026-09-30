@@ -1,7 +1,7 @@
 [project]
 name = "lantern-api"
 version = "0.1.0"
-description = "Lantern HTTP API: runs, findings, reports, GitHub App installation flow and webhooks."
+description = "Katz HTTP API: runs, findings, reports, GitHub App installation flow and webhooks."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "lantern-platform",

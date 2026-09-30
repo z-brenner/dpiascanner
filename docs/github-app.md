@@ -1,6 +1,6 @@
 # GitHub App setup
 
-Lantern reads repositories through a GitHub App. The app clones code at a commit, posts a
+Katz reads repositories through a GitHub App. The app clones code at a commit, posts a
 check run and one comment on pull requests, and receives webhooks for installations,
 pushes, and pull requests.
 
@@ -10,23 +10,23 @@ pushes, and pull requests.
 |---|---|---|
 | Contents | read | Shallow clone of the commit being scanned; list pull request files |
 | Metadata | read | Required by GitHub for every app; repository names and default branches |
-| Pull requests | write | Create and update the single Lantern comment on a pull request |
+| Pull requests | write | Create and update the single Katz comment on a pull request |
 | Checks | write | Report run status and a findings summary as a check run |
 
 Events: `push` (full run on the default branch) and `pull_request` (incremental run on
 `opened`, `reopened`, and `synchronize`). GitHub delivers `installation` and
 `installation_repositories` events to every GitHub App automatically, so they are not listed
-in the manifest's `default_events`; Lantern handles `installation` to keep its record of
+in the manifest's `default_events`; Katz handles `installation` to keep its record of
 installations current.
 
-Lantern asks for nothing else: no write access to code, no issues, no members, no secrets.
+Katz asks for nothing else: no write access to code, no issues, no members, no secrets.
 
 ## Create the app
 
-1. Edit `infra/github-app-manifest.json`. Replace `lantern.example.com` with the web app's
-   origin and `api.lantern.example.com` with the API's origin. On Cloudflare
+1. Edit `infra/github-app-manifest.json`. Replace `katz.example.com` with the web app's
+   origin and `api.katz.example.com` with the API's origin. On Cloudflare
    (`docs/deploy-cloudflare.md`) the API is served under the site at `/api`, so the webhook
-   URL is `https://lantern.example.com/api/webhooks/github`. Set `public` to `true` only if
+   URL is `https://katz.example.com/api/webhooks/github`. Set `public` to `true` only if
    other organizations should be able to install it.
 2. Register it through the manifest flow. Serve this form from any page and submit it
    (for an organization, post to
@@ -35,7 +35,7 @@ Lantern asks for nothing else: no write access to code, no issues, no members, n
    ```html
    <form action="https://github.com/settings/apps/new?state=<random>" method="post">
      <input type="hidden" name="manifest" value='<contents of github-app-manifest.json>'>
-     <button>Create Lantern DPIA app</button>
+     <button>Create Katz DPIA app</button>
    </form>
    ```
 
@@ -50,7 +50,7 @@ Lantern asks for nothing else: no write access to code, no issues, no members, n
    The response carries `id`, `slug`, `client_id`, `client_secret`, `webhook_secret`, and
    `pem`. Store them in your secret manager; GitHub shows `pem` and `client_secret` once.
 
-## Configure Lantern
+## Configure Katz
 
 | Variable | Value |
 |---|---|
@@ -84,7 +84,7 @@ installation tokens are minted again on demand.
 - **Pull requests.** On `opened` or `synchronize`, the API opens a queued check run and
   enqueues an incremental run against the latest completed run on the base branch. The
   worker completes the check (`success`, or `neutral` when new findings are high or
-  critical; Lantern does not block merges) and creates or updates one comment carrying a
+  critical; Katz does not block merges) and creates or updates one comment carrying a
   hidden marker, so later pushes edit it instead of adding comments.
 
 ## Local development

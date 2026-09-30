@@ -32,7 +32,10 @@ persisted through a `RunStore`.
 or a fresh container from `LANTERN_WORKER_IMAGE` (`container`: read-only root, capped tmpfs,
 no capabilities, secrets passed by name so they never appear in a command line). The
 supervisor kills a job at `LANTERN_RUN_TIMEOUT_S` and records the timeout against the stage
-that was running.
+that was running. With `LANTERN_RETENTION_HOURS` set, `serve` also deletes expired runs and
+inactive users every hour (`lantern_platform.retention`); `python -m lantern_worker purge`
+does it once. With `LANTERN_PUBLIC_REPOS_ONLY`, the clone stage refuses runs recorded as
+private and clones without the installation token.
 
 `jobs.process_run`:
 

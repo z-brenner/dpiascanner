@@ -1,10 +1,10 @@
-# Lantern: project charter
+# Katz: project charter
 
 Every session working in this repository reads this file first. It is the design contract. If a change would violate it, stop and raise the conflict instead of working around it.
 
 ## 1. Purpose
 
-Lantern clones a GitHub repository, builds a deterministic data-flow graph of personal data (sources, transformations, sinks, retention points), classifies every node and edge with a calibrated decision model, and generates a Data Protection Impact Assessment under GDPR Article 35 plus a CCPA/CPRA mapping.
+Katz clones a GitHub repository, builds a deterministic data-flow graph of personal data (sources, transformations, sinks, retention points), classifies every node and edge with a calibrated decision model, and generates a Data Protection Impact Assessment under GDPR Article 35 plus a CCPA/CPRA mapping.
 
 Every claim in the report must be traceable to a graph node or edge with file path and line number. If a claim cannot be traced, it does not appear in the report.
 
@@ -62,6 +62,16 @@ Dependency direction (no cycles): `registry` ← `analysis` ← `report`; `decis
 
 - `make install` syncs the uv workspace and the pnpm workspace. `make lint`, `make test`, `make run`. `make test-dynamic` runs the fixtures against the mock server; `make test-docker` runs the Docker sandbox (opt-in, builds images). `make benchmark-gate` enforces the definition of done on the fixtures (CI runs it); `make benchmark` regenerates `benchmarks/RESULTS.md`.
 - Python packages live under `packages/<name>/src/lantern_<name>/` and `apps/<name>/src/lantern_<name>/`, with tests in `<package>/tests/`. pytest runs in importlib mode, so test module names may repeat across packages.
+- **Naming.** The product is Katz. It was first called Lantern, and code identifiers keep that name:
+  - the `lantern_*` Python packages and their `lantern-*` distributions;
+  - the `LANTERN_*` environment variables;
+  - the per-repository `lantern.yml`;
+  - the `lantern.*/v*` schema ids;
+  - container paths and image names;
+  - user agents;
+  - the planted fixture values, such as "Lantern Canary".
+
+  Use Katz in anything a person reads. Rename identifiers only as one deliberate change, never piecemeal.
 - **Fixture first.** When a real repository exposes an analyzer gap, add the pattern to a fixture and its manifest first, watch the test fail, then fix the analyzer. Never tune a fixture to make the analyzer pass.
 - The `StubProvider` is an oracle tuned to the fixtures. Tests that use it prove plumbing, not classification quality. Classification quality is measured only by the calibration harness against a real provider.
 - When a session runs out of context, the next one starts with: "Read CLAUDE.md and the README in the package you are working in, then continue from the failing tests."

@@ -4,7 +4,8 @@ name: deploy-web
 # until the repository has the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets; see
 # docs/deploy-cloudflare.md. It builds the public demo (build:cf, with the demo notice).
 # Repository variables: LANTERN_API_ORIGIN (passed to the Worker as API_ORIGIN), and
-# LANTERN_OPERATOR_CONTACT and LANTERN_BACKEND_HOST (shown in the demo's data notice).
+# LANTERN_OPERATOR_CONTACT, LANTERN_BACKEND_HOST and LANTERN_BACKUP_DAYS (shown in the demo's
+# data notice).
 
 on:
   workflow_run:
@@ -67,6 +68,7 @@ jobs:
           API_ORIGIN: ${{ vars.LANTERN_API_ORIGIN }}
           VITE_OPERATOR_CONTACT: ${{ vars.LANTERN_OPERATOR_CONTACT }}
           VITE_BACKEND_HOST: ${{ vars.LANTERN_BACKEND_HOST }}
+          VITE_BACKUP_DAYS: ${{ vars.LANTERN_BACKUP_DAYS }}
           WRANGLER_SEND_METRICS: "false"
         run: |
           pnpm run build:cf

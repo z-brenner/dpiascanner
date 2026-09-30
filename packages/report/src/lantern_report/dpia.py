@@ -504,9 +504,9 @@ class DPIABuilder:
             basis="GDPR Art. 35(7)(c); ICO DPIA template step 5",
             intro="Likelihood is estimated from the evidence: remote when no entry point reaches "
             "the flow, probable when dynamic verification observed it, and possible when "
-            "only static analysis shows it. Severity of harm maps Lantern's severity (minimal for "
+            "only static analysis shows it. Severity of harm maps Katz's severity (minimal for "
             "informational and low, significant for medium, severe for high and critical). "
-            "Overall risk is likelihood times severity on a 3x3 scale (Lantern's scale, not "
+            "Overall risk is likelihood times severity on a 3x3 scale (Katz's scale, not "
             "the ICO's).",
             narrative=self._narrate(
                 "risks",
@@ -709,7 +709,7 @@ class DPIABuilder:
                     ],
                     notes=[
                         "'Registry: service-provider terms' is the vendor's own public claim, "
-                        "recorded in Lantern's SDK registry; it is not a legal determination."
+                        "recorded in Katz's SDK registry; it is not a legal determination."
                     ],
                 ),
                 Section(

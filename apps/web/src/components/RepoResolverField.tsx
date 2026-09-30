@@ -5,6 +5,7 @@ import { Pill, button, input, primaryButton } from "./Badge";
 const STATUS_LABEL: Record<Resolution["status"], { text: string; tone: "good" | "warn" | "bad" }> = {
   installed: { text: "Can be scanned", tone: "good" },
   public: { text: "Public: can be scanned", tone: "good" },
+  private_not_allowed: { text: "Private: not scanned here", tone: "warn" },
   inaccessible: { text: "Cannot be scanned yet", tone: "warn" },
   invalid: { text: "Not a GitHub repository", tone: "bad" },
 };
@@ -38,7 +39,7 @@ export function RepoResolverField({ resolve, onRun }: Props) {
 
   const label = result ? STATUS_LABEL[result.status] : null;
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <form
         className="flex gap-2"
         onSubmit={(event) => {
@@ -51,7 +52,7 @@ export function RepoResolverField({ resolve, onRun }: Props) {
         </label>
         <input
           id="repo-resolver"
-          className={input}
+          className={`${input} font-mono text-[13px]`}
           placeholder="https://github.com/owner/repo, git@github.com:owner/repo.git, or owner/repo"
           value={value}
           onChange={(event) => {
@@ -72,22 +73,24 @@ export function RepoResolverField({ resolve, onRun }: Props) {
         </button>
       </form>
       <div role="status" aria-live="polite" className="min-h-6 text-sm">
-        {error && <p className="text-red-700 dark:text-red-300">{error}</p>}
+        {error && <p className="text-critical">{error}</p>}
         {result && label && (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg bg-sunken px-3 py-2.5">
             <Pill tone={label.tone}>{label.text}</Pill>
-            {result.full_name && <span className="font-mono">{result.full_name}</span>}
-            {result.reason && <span className="text-stone-600 dark:text-stone-400">{result.reason}</span>}
-            {result.scannable && (
-              <button type="button" className={primaryButton} onClick={() => onRun(result)}>
-                Run
-              </button>
-            )}
-            {!result.scannable && result.install_url && (
-              <a className={button} href={result.install_url} target="_blank" rel="noreferrer">
-                Install the Lantern app
-              </a>
-            )}
+            {result.full_name && <span className="font-mono text-[13px] text-ink">{result.full_name}</span>}
+            {result.reason && <span className="text-ink-2">{result.reason}</span>}
+            <span className="ml-auto flex gap-2">
+              {result.scannable && (
+                <button type="button" className={primaryButton} onClick={() => onRun(result)}>
+                  Run
+                </button>
+              )}
+              {!result.scannable && result.install_url && result.status !== "private_not_allowed" && (
+                <a className={button} href={result.install_url} target="_blank" rel="noreferrer">
+                  Install the Katz app
+                </a>
+              )}
+            </span>
           </div>
         )}
       </div>

@@ -1,0 +1,100 @@
+# Render Blueprint for Katz's API, worker, Postgres, and queue (docs/deploy-render.md).
+# The web app runs on Cloudflare Workers (docs/deploy-cloudflare.md) and reaches the API through
+# its /api proxy, which sends LANTERN_PROXY_SECRET; the API refuses everything else except
+# /healthz. Settings here are for the public demo: public repositories only, everything
+# deleted after 3 days. Keep all resources in one region so they talk over Render's private
+# network.
+#
+# Cost at the plans below (checked 2026-09): API $7 + worker $7 + Postgres $6 a month; the
+# Key Value queue is free. Cheaper and worse: `plan: free` on the API sleeps after 15 minutes
+# idle and takes about a minute to wake (GitHub gives webhooks 10 seconds), and free Postgres
+# is deleted 30 days after creation. Workers have no free plan.
+
+envVarGroups:
+  - name: katz-shared
+    envVars:
+      # Both services decrypt the same stored tokens, so they share one generated key.
+      - key: LANTERN_TOKEN_KEY
+        generateValue: true
+      # Copy this value into the Cloudflare Worker's API_PROXY_SECRET secret.
+      - key: LANTERN_PROXY_SECRET
+        generateValue: true
+      - key: LANTERN_JOB_ISOLATION
+        value: process # Render has no Docker daemon, so dynamic verification is off
+      - key: LANTERN_PUBLIC_REPOS_ONLY
+        value: "1"
+      - key: LANTERN_RETENTION_HOURS
+        value: "72"
+      - key: LANTERN_SESSION_TTL_HOURS
+        value: "72"
+      - key: LANTERN_DECISION_PROVIDER
+        value: stub # classification stays on the server; no model sees any code
+      - key: LANTERN_COOKIE_SECURE
+        value: "1"
+
+services:
+  - type: web
+    name: katz-api
+    runtime: docker
+    region: frankfurt
+    plan: 0.5c-512mb
+    dockerfilePath: ./infra/Dockerfile
+    dockerContext: .
+    dockerCommand: /bin/sh -c "uvicorn lantern_api.main:app --host 0.0.0.0 --port ${PORT:-10000}"
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: katz-shared
+      - key: DATABASE_URL # postgresql://…; the app adds the psycopg driver itself
+        fromDatabase: { name: katz-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: katz-queue, property: connectionString }
+      # Filled in once, when the Blueprint is first created.
+      - { key: LANTERN_WEB_URL, sync: false } # the site's origin, e.g. https://katz.example.com
+      - { key: GITHUB_APP_ID, sync: false }
+      - { key: GITHUB_APP_SLUG, sync: false }
+      - { key: GITHUB_APP_PRIVATE_KEY, sync: false }
+      - { key: GITHUB_WEBHOOK_SECRET, sync: false }
+      - { key: GITHUB_CLIENT_ID, sync: false }
+      - { key: GITHUB_CLIENT_SECRET, sync: false }
+
+  - type: worker
+    name: katz-worker
+    runtime: docker
+    region: frankfurt
+    # Measured on full-stack-fastapi-template (14k lines): 70 MB for the analyzer and 130 MB
+    # for Semgrep at peak. Raise to 1c-2g for much larger repositories.
+    plan: 0.5c-512mb
+    dockerfilePath: ./infra/Dockerfile
+    dockerContext: .
+    dockerCommand: python -m lantern_worker serve
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 300
+    envVars:
+      - fromGroup: katz-shared
+      - key: DATABASE_URL
+        fromDatabase: { name: katz-db, property: connectionString }
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: katz-queue, property: connectionString }
+      # The worker posts check runs and PR comments as the GitHub App, and links to the site.
+      - key: GITHUB_APP_ID
+        fromService: { type: web, name: katz-api, envVarKey: GITHUB_APP_ID }
+      - key: GITHUB_APP_PRIVATE_KEY
+        fromService: { type: web, name: katz-api, envVarKey: GITHUB_APP_PRIVATE_KEY }
+      - key: LANTERN_WEB_URL
+        fromService: { type: web, name: katz-api, envVarKey: LANTERN_WEB_URL }
+
+  - type: keyvalue
+    name: katz-queue
+    region: frankfurt
+    plan: free # 25 MB, in memory: queued runs are lost on a restart; 256mb ($10) persists
+    maxmemoryPolicy: noeviction # a job queue must not drop entries
+    ipAllowList: [] # private network only
+
+databases:
+  - name: katz-db
+    region: frankfurt
+    plan: 0.1c-256mb
+    databaseName: lantern
+    user: lantern
+    ipAllowList: [] # private network only

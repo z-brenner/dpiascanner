@@ -27,11 +27,13 @@ def accessible_repos(svc: Services, user: User) -> list[dict[str, Any]]:
     repos: list[dict[str, Any]] = []
     for installation_id in sorted(user_installation_ids(svc, user)):
         for repo in svc.github.user_installation_repos(token, installation_id):
+            private = bool(repo.get("private"))
             repos.append(
                 {
                     "id": repo.get("id"),
                     "full_name": repo["full_name"],
-                    "private": bool(repo.get("private")),
+                    "private": private,
+                    "scannable": not (private and svc.settings.public_repos_only),
                     "default_branch": repo.get("default_branch") or "main",
                     "installation_id": installation_id,
                     "updated_at": repo.get("pushed_at") or repo.get("updated_at"),
@@ -65,7 +67,7 @@ def list_repos(
 @dataclass
 class Resolution:
     input: str
-    status: str  # installed | public | inaccessible | invalid
+    status: str  # installed | public | private_not_allowed | inaccessible | invalid
     full_name: str | None = None
     owner: str | None = None
     repo: str | None = None
@@ -95,6 +97,8 @@ def resolve(svc: Services, user: User, text: str) -> Resolution:
         )
     for repo in accessible_repos(svc, user):
         if repo["full_name"].lower() == ref.full_name.lower():
+            if not repo["scannable"]:
+                return _private_not_allowed(text, ref, repo["full_name"], repo["default_branch"])
             return Resolution(
                 text,
                 "installed",
@@ -125,6 +129,8 @@ def resolve(svc: Services, user: User, text: str) -> Resolution:
             "app on it to get pull request checks.",
             install_url=install_url,
         )
+    if data is not None and svc.settings.public_repos_only:
+        return _private_not_allowed(text, ref, ref.full_name, data.get("default_branch"))
     if data is not None:
         return Resolution(
             text,
@@ -134,7 +140,7 @@ def resolve(svc: Services, user: User, text: str) -> Resolution:
             repo=ref.name,
             private=True,
             default_branch=data.get("default_branch"),
-            reason="Private repository that the Lantern app is not installed on. Add it to the "
+            reason="Private repository that the Katz app is not installed on. Add it to the "
             "app's installation to scan it.",
             install_url=install_url,
         )
@@ -146,6 +152,22 @@ def resolve(svc: Services, user: User, text: str) -> Resolution:
         repo=ref.name,
         reason="Repository not found, or private and not visible to your GitHub account.",
         install_url=install_url,
+    )
+
+
+def _private_not_allowed(
+    text: str, ref: RepoRef, full_name: str, default_branch: str | None
+) -> Resolution:
+    return Resolution(
+        text,
+        "private_not_allowed",
+        full_name=full_name,
+        owner=ref.owner,
+        repo=ref.name,
+        private=True,
+        default_branch=default_branch,
+        reason="This instance scans public repositories only. Host Katz yourself to scan "
+        "private code.",
     )
 
 

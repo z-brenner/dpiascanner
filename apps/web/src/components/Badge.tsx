@@ -1,34 +1,48 @@
 import type { Severity } from "../api/types";
 
-const SEVERITY: Record<Severity, string> = {
-  critical: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
-  high: "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200",
-  medium: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  low: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-  informational: "bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-200",
+/** Severity is a status scale: a dot in the status colour, always beside its name. */
+const SEVERITY_DOT: Record<Severity, string> = {
+  critical: "bg-critical",
+  high: "bg-serious",
+  medium: "bg-warning",
+  low: "bg-ink-3",
+  informational: "bg-line-strong",
 };
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   return (
-    <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-semibold uppercase ${SEVERITY[severity]}`}>
+    <span className="inline-flex items-center gap-1.5 text-[13px] font-medium whitespace-nowrap text-ink capitalize">
+      <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[severity]}`} />
       {severity}
     </span>
   );
 }
 
-export function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "good" | "warn" | "bad" }) {
-  const tones = {
-    neutral: "bg-stone-200 text-stone-800 dark:bg-stone-800 dark:text-stone-200",
-    good: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-    warn: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-    bad: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
-  };
-  return <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${tones[tone]}`}>{children}</span>;
+type Tone = "neutral" | "good" | "warn" | "bad";
+
+const TONE_DOT: Record<Tone, string | null> = {
+  neutral: null,
+  good: "bg-good",
+  warn: "bg-warning",
+  bad: "bg-critical",
+};
+
+/** A quiet label chip; the tone shows as a dot, the words carry the meaning. */
+export function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
+  const dot = TONE_DOT[tone];
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2 py-0.5 text-xs font-medium whitespace-nowrap text-ink-2">
+      {dot && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${dot}`} />}
+      {children}
+    </span>
+  );
 }
 
-export const button =
-  "inline-flex items-center gap-1 rounded border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-stone-100 disabled:opacity-50 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800";
-export const primaryButton =
-  "inline-flex items-center gap-1 rounded bg-sky-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-900 disabled:opacity-50 dark:bg-sky-600 dark:hover:bg-sky-500";
+const base =
+  "inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45";
+
+export const primaryButton = `${base} bg-ink text-paper hover:bg-ink/85`;
+export const button = `${base} border border-line-strong bg-surface text-ink hover:bg-sunken`;
+export const ghostButton = `${base} text-ink-2 hover:bg-sunken hover:text-ink`;
 export const input =
-  "w-full rounded border border-stone-300 bg-white px-2 py-1.5 text-sm dark:border-stone-700 dark:bg-stone-900";
+  "w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-3 transition-colors focus:border-ink focus:outline-none";

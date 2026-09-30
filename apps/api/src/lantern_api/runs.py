@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from pydantic import BaseModel, Field
-from sqlalchemy import ColumnElement, false, func, or_, select
+from sqlalchemy import ColumnElement, and_, false, func, or_, select
 
 from lantern_api.auth import current_user, services, user_installation_ids
 from lantern_api.repos import resolve
@@ -25,6 +25,7 @@ from lantern_platform.db import (
     utcnow,
 )
 from lantern_platform.github import GitHubError, parse_repo
+from lantern_platform.retention import cutoff_for
 from lantern_platform.storage import load_findings
 from lantern_report.context import SourceLinker
 from lantern_report.diff import diff_findings
@@ -52,11 +53,15 @@ def new_run_id() -> str:
 
 
 def visible_run_filter(svc: Services, user: User) -> ColumnElement[bool]:
+    """Runs the user may see: their own and their installations', and, with retention on,
+    only runs younger than the retention period, even before a sweep deletes the rest."""
     installations = user_installation_ids(svc, user)
     clauses: list[ColumnElement[bool]] = [Run.created_by == user.id]
     if installations:
         clauses.append(Run.installation_id.in_(installations))
-    return or_(*clauses) if clauses else false()
+    visible = or_(*clauses) if clauses else false()
+    cutoff = cutoff_for(svc.settings.retention_hours)
+    return and_(visible, Run.created_at >= cutoff) if cutoff is not None else visible
 
 
 def get_visible_run(svc: Services, user: User, run_id: str) -> Run:

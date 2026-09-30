@@ -225,6 +225,17 @@ class WebhookDelivery(Base):
     received_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class SystemState(Base):
+    """Small operational facts shared by the API and workers, such as when retention last ran."""
+
+    __tablename__ = "system_state"
+    key: Mapped[str] = mapped_column(String(60), primary_key=True)
+    value: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict)
+    updated_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
 class Database:
     def __init__(self, url: str) -> None:
         kwargs: dict[str, Any] = {}

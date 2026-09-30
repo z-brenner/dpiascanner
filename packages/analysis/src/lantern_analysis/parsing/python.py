@@ -1,4 +1,4 @@
-"""Lower Python source to the Lantern IR with tree-sitter."""
+"""Lower Python source to the Katz IR with tree-sitter."""
 
 from __future__ import annotations
 

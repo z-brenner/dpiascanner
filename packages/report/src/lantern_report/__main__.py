@@ -28,7 +28,7 @@ FORMATS = ("json", "md", "html", "docx")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Render a Lantern run as a DPIA report.")
+    parser = argparse.ArgumentParser(description="Render a Katz run as a DPIA report.")
     parser.add_argument("run_dir", type=Path)
     parser.add_argument("--format", choices=[*FORMATS, "all"], default="all")
     parser.add_argument("--out", type=Path, default=Path("."))

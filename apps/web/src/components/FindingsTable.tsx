@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import type { Finding, Severity } from "../api/types";
-import { Pill, SeverityBadge, input } from "./Badge";
+import { Pill, SeverityBadge, ghostButton, input } from "./Badge";
 import { EMPTY_FILTERS, SEVERITIES, categoryLabel, filterFindings, isVerified, type FindingFilters } from "./filters";
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
   onSelect: (finding: Finding) => void;
   selectedId?: string | null;
 }
+
+const th = "px-4 py-2.5 text-xs font-medium text-ink-3";
 
 export function FindingsTable({ findings, onSelect, selectedId }: Props) {
   const [filters, setFilters] = useState<FindingFilters>(EMPTY_FILTERS);
@@ -22,10 +24,10 @@ export function FindingsTable({ findings, onSelect, selectedId }: Props) {
   }
 
   return (
-    <section aria-label="Findings" className="space-y-3">
-      <div className="flex flex-wrap items-end gap-4 text-sm">
-        <label className="flex flex-col gap-1">
-          <span className="font-medium">Category</span>
+    <section aria-label="Findings" className="space-y-4">
+      <div className="flex flex-wrap items-end gap-x-5 gap-y-4 text-sm">
+        <label className="flex min-w-44 flex-col gap-1.5">
+          <span className="text-xs font-medium text-ink-2">Category</span>
           <select
             className={input}
             value={filters.category}
@@ -39,19 +41,27 @@ export function FindingsTable({ findings, onSelect, selectedId }: Props) {
             ))}
           </select>
         </label>
-        <fieldset className="flex flex-col gap-1">
-          <legend className="font-medium">Severity</legend>
-          <div className="flex flex-wrap gap-2">
-            {SEVERITIES.map((s) => (
-              <label key={s} className="flex items-center gap-1">
-                <input type="checkbox" checked={filters.severities.includes(s)} onChange={() => toggleSeverity(s)} />
-                {s}
-              </label>
-            ))}
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-1.5 text-xs font-medium text-ink-2">Severity</legend>
+          <div className="flex flex-wrap gap-1.5">
+            {SEVERITIES.map((s) => {
+              const on = filters.severities.includes(s);
+              return (
+                <label
+                  key={s}
+                  className={`inline-flex cursor-pointer items-center rounded-lg border px-2.5 py-[7px] transition-colors ${
+                    on ? "border-ink bg-sunken text-ink" : "border-line-strong bg-surface text-ink-2 hover:text-ink"
+                  }`}
+                >
+                  <input type="checkbox" className="sr-only" checked={on} onChange={() => toggleSeverity(s)} />
+                  <SeverityBadge severity={s} />
+                </label>
+              );
+            })}
           </div>
         </fieldset>
-        <label className="flex flex-col gap-1">
-          <span className="font-medium">Status</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-ink-2">Status</span>
           <select
             className={input}
             value={filters.status}
@@ -62,8 +72,8 @@ export function FindingsTable({ findings, onSelect, selectedId }: Props) {
             <option value="unresolved">Unresolved</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="font-medium">Evidence</span>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-xs font-medium text-ink-2">Evidence</span>
           <select
             className={input}
             value={filters.verification}
@@ -74,38 +84,36 @@ export function FindingsTable({ findings, onSelect, selectedId }: Props) {
             <option value="inferred">Inferred from code</option>
           </select>
         </label>
-        <button type="button" className="text-sky-800 underline dark:text-sky-300" onClick={() => setFilters(EMPTY_FILTERS)}>
+        <button type="button" className={ghostButton} onClick={() => setFilters(EMPTY_FILTERS)}>
           Clear filters
         </button>
       </div>
-      <p className="text-sm text-stone-600 dark:text-stone-400" aria-live="polite">
+      <p className="text-xs text-ink-3" aria-live="polite">
         {shown.length} of {findings.length} findings
       </p>
-      <div className="overflow-x-auto">
+      <div className="card overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-stone-300 dark:border-stone-700">
-              <th className="p-2">Finding</th>
-              <th className="p-2">Severity</th>
-              <th className="p-2">Title</th>
-              <th className="p-2">Data</th>
-              <th className="p-2">Status</th>
-              <th className="p-2">Evidence</th>
+          <thead className="border-b border-line bg-sunken/60">
+            <tr>
+              <th className={th}>Finding</th>
+              <th className={th}>Severity</th>
+              <th className={th}>Title</th>
+              <th className={th}>Data</th>
+              <th className={th}>Status</th>
+              <th className={th}>Evidence</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line">
             {shown.map((f) => (
               <tr
                 key={f.id}
-                className={`cursor-pointer border-b border-stone-200 hover:bg-stone-100 dark:border-stone-800 dark:hover:bg-stone-900 ${
-                  selectedId === f.id ? "bg-sky-50 dark:bg-sky-950" : ""
-                }`}
+                className={`cursor-pointer transition-colors hover:bg-sunken/70 ${selectedId === f.id ? "bg-sunken" : ""}`}
                 onClick={() => onSelect(f)}
               >
-                <td className="p-2 font-mono">
+                <td className="px-4 py-3 align-top font-mono text-[13px]">
                   <button
                     type="button"
-                    className="underline"
+                    className="link text-ink"
                     onClick={(event) => {
                       event.stopPropagation();
                       onSelect(f);
@@ -114,19 +122,26 @@ export function FindingsTable({ findings, onSelect, selectedId }: Props) {
                     {f.id}
                   </button>
                 </td>
-                <td className="p-2">
+                <td className="px-4 py-3 align-top">
                   <SeverityBadge severity={f.severity} />
                 </td>
-                <td className="p-2">{f.title}</td>
-                <td className="p-2">{f.data_categories.join(", ") || "–"}</td>
-                <td className="p-2">
+                <td className="px-4 py-3 align-top font-medium text-ink">{f.title}</td>
+                <td className="px-4 py-3 align-top text-ink-2">{f.data_categories.join(", ").replace(/_/g, " ") || "–"}</td>
+                <td className="px-4 py-3 align-top">
                   <Pill tone={f.status === "unresolved" ? "warn" : "neutral"}>{f.status}</Pill>
                 </td>
-                <td className="p-2">
+                <td className="px-4 py-3 align-top">
                   <Pill tone={isVerified(f) ? "good" : "neutral"}>{isVerified(f) ? "verified" : "inferred"}</Pill>
                 </td>
               </tr>
             ))}
+            {shown.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-ink-3">
+                  No findings match these filters.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

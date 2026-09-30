@@ -1,7 +1,7 @@
 [project]
 name = "lantern-platform"
 version = "0.1.0"
-description = "Shared service layer for the Lantern API and worker: settings, storage, queue, GitHub App client, crypto, egress policy."
+description = "Shared service layer for the Katz API and worker: settings, storage, queue, GitHub App client, crypto, egress policy."
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "lantern-analysis",

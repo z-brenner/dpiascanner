@@ -262,7 +262,7 @@ def _fail_check(deps: WorkerDeps, run: Run, check_run_id: int | None, stage: str
         conclusion="neutral",
         completed_at=utcnow().isoformat(),
         output={
-            "title": "Lantern could not complete this run",
+            "title": "Katz could not complete this run",
             "summary": f"The run failed during the {stage} stage. No findings were recorded.",
         },
     )
@@ -304,8 +304,16 @@ def process_run(run_id: str, deps: WorkerDeps) -> str:
         except Exception as exc:
             _note(deps.db, run_id, "github_error", f"check run: {exc}")
         with tracker.stage("clone"):
+            public_only = deps.settings.public_repos_only
+            if public_only and (snapshot.options or {}).get("visibility") == "private":
+                raise PermissionError("this instance scans public repositories only")
             deps.fetcher.fetch(
-                snapshot.repo_full_name, snapshot.sha, snapshot.installation_id, workdir / "repo"
+                snapshot.repo_full_name,
+                snapshot.sha,
+                # Anonymous in public-only mode, so a private repository cannot be cloned even
+                # if one got past the API.
+                None if public_only else snapshot.installation_id,
+                workdir / "repo",
             )
         scope, base_id = _base_scope(deps, snapshot)
         options = snapshot.options or {}

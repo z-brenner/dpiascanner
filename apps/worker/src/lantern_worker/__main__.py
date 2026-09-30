@@ -1,21 +1,26 @@
-"""Lantern worker.
+"""Katz worker.
 
     python -m lantern_worker serve            consume the run queue
     python -m lantern_worker run-job RUN_ID   process one run (what serve spawns per job)
+    python -m lantern_worker purge            delete data past LANTERN_RETENTION_HOURS once
 
 ``serve`` runs each job in a separate process (``LANTERN_JOB_ISOLATION=process``) or a fresh
 container from ``LANTERN_WORKER_IMAGE`` (``container``), kills it at the run timeout, and
-records the timeout against the stage that was running.
+records the timeout against the stage that was running. With ``LANTERN_RETENTION_HOURS`` set,
+``serve`` also deletes expired data every hour (``lantern_platform.retention``).
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import logging
 import os
 import signal
 import subprocess
 import sys
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 from lantern_decisions.factory import make_provider
@@ -25,6 +30,7 @@ from lantern_platform.db import Database
 from lantern_platform.egress import EgressPolicy
 from lantern_platform.github import GitHub
 from lantern_platform.queue import JobQueue, RedisQueue
+from lantern_platform.retention import SWEEP_INTERVAL, purge_expired
 from lantern_platform.tokens import DatabaseTokenStore
 from lantern_worker.dynamic.base import Backend
 from lantern_worker.dynamic.sandbox import DockerSandbox
@@ -132,11 +138,36 @@ def supervise(run_id: str, settings: Settings, db: Database) -> int:
     return code
 
 
-def serve(settings: Settings, queue: JobQueue) -> None:
+def sweep(settings: Settings, db: Database) -> None:
+    """One retention sweep; a failure is logged, never fatal to the worker."""
+    try:
+        result = purge_expired(
+            db,
+            settings.retention_hours,
+            run_timeout=dt.timedelta(seconds=settings.run_timeout_s),
+        )
+        log.info("retention sweep: %s", result.to_dict())
+    except Exception:
+        log.exception("retention sweep failed")
+
+
+def serve(
+    settings: Settings,
+    queue: JobQueue,
+    *,
+    clock: Callable[[], float] = time.monotonic,
+    iterations: int | None = None,
+) -> None:
     db = Database(settings.database_url)
     db.create_all()
     log.info("worker consuming the run queue")
-    while True:
+    next_sweep = clock()
+    while iterations is None or iterations > 0:
+        if iterations is not None:
+            iterations -= 1
+        if settings.retention_hours > 0 and clock() >= next_sweep:
+            sweep(settings, db)
+            next_sweep = clock() + SWEEP_INTERVAL.total_seconds()
         run_id = queue.dequeue(timeout=5)
         if run_id:
             log.info("run %s: start", run_id)
@@ -149,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lantern_worker")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("serve")
+    sub.add_parser("purge")
     job = sub.add_parser("run-job")
     job.add_argument("run_id")
     job.add_argument("--workdir", type=Path, default=None)
@@ -156,6 +188,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = Settings.from_env()
     if args.command == "serve":
         serve(settings, RedisQueue(settings.redis_url))
+        return 0
+    if args.command == "purge":
+        db = Database(settings.database_url)
+        db.create_all()
+        sweep(settings, db)
         return 0
     deps = build_deps(settings)
     deps.workdir_root = args.workdir

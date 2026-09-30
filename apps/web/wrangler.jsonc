@@ -1,8 +1,8 @@
 // Cloudflare Worker that serves the web app and proxies /api/* to the API.
-// Deploy: pnpm --filter @lantern/web cf:deploy (see docs/deploy-cloudflare.md).
+// Deploy: pnpm --filter @katz/web cf:deploy (see docs/deploy-cloudflare.md).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "lantern-web",
+  "name": "katz-web",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-26",
   "assets": {

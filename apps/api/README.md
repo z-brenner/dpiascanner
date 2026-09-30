@@ -25,6 +25,16 @@ against SQLite, an in-memory queue, and a fake GitHub.
 | `GET /repos/{owner}/{repo}/runs`, `GET /runs/{a}/diff/{b}` | Run history and findings diff |
 | `POST /webhooks/github` | Signed webhooks: installation, push to the default branch (full run), pull request opened/reopened/synchronize (incremental run, check run, one PR comment) |
 
-Access: a user sees runs they created and runs of repositories in their installations.
+Access: a user sees runs they created and runs of repositories in their installations, and,
+with `LANTERN_RETENTION_HOURS` set, only runs younger than the retention period. The API
+deletes expired data when it starts and every hour (`lantern_platform.retention`), and
+`/config` reports whether deletion is running, so the web app states the promise only then.
 Sessions are stored by hash; GitHub tokens are encrypted with `LANTERN_TOKEN_KEY`.
 Browser requests are protected by `SameSite=Lax` cookies and JSON-only bodies.
+
+The public demo's switches:
+- `LANTERN_PUBLIC_REPOS_ONLY`: the resolver, `POST /runs`, and webhooks refuse private
+  repositories.
+- `LANTERN_PROXY_SECRET`: every path except `/healthz` requires the
+  `X-Katz-Proxy-Secret` header. It is for an API whose hostname is public, as on Render
+  (`docs/deploy-render.md`).

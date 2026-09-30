@@ -1,1 +1,1 @@
-"""Shared service layer for the Lantern API and worker."""
+"""Shared service layer for the Katz API and worker."""

@@ -5,6 +5,8 @@ import type { Repo, RunOptions } from "../api/types";
 import { Pill, button, input } from "../components/Badge";
 import { RepoResolverField } from "../components/RepoResolverField";
 import { RunOptionsPanel } from "../components/RunOptionsPanel";
+import { Notice, PageHeader, SectionTitle } from "../components/ui";
+import { useConfig } from "../config";
 
 interface Target {
   owner: string;
@@ -14,6 +16,7 @@ interface Target {
 
 export function ReposPage() {
   const navigate = useNavigate();
+  const config = useConfig();
   const [query, setQuery] = useState("");
   const [repos, setRepos] = useState<Repo[]>([]);
   const [total, setTotal] = useState(0);
@@ -52,14 +55,22 @@ export function ReposPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-2">
-        <h1 className="text-xl font-semibold">Scan a repository</h1>
+    <div className="space-y-10">
+      <PageHeader eyebrow="Scan" title="Repositories">
+        Paste any GitHub URL, or pick one of the repositories you connected.
+        {config?.public_repos_only && " This instance scans public repositories only."}
+      </PageHeader>
+
+      <section className="space-y-3">
+        <SectionTitle>Check a repository</SectionTitle>
         <RepoResolverField
           resolve={api.resolve}
-          onRun={(r) => r.owner && r.repo && setTarget({ owner: r.owner, repo: r.repo, defaultBranch: r.default_branch ?? "main" })}
+          onRun={(r) =>
+            r.owner && r.repo && setTarget({ owner: r.owner, repo: r.repo, defaultBranch: r.default_branch ?? "main" })
+          }
         />
       </section>
+
       {target && (
         <RunOptionsPanel
           repo={`${target.owner}/${target.repo}`}
@@ -69,31 +80,51 @@ export function ReposPage() {
           onCancel={() => setTarget(null)}
         />
       )}
-      {error && <p className="text-sm text-red-700 dark:text-red-300">{error}</p>}
-      <section className="space-y-2">
-        <h2 className="font-semibold">Your repositories</h2>
+      {error && <Notice tone="bad">{error}</Notice>}
+
+      <section className="space-y-3">
+        <SectionTitle aside={`${total} ${total === 1 ? "repository" : "repositories"}`}>Your repositories</SectionTitle>
         <label className="sr-only" htmlFor="repo-search">
           Search repositories
         </label>
-        <input id="repo-search" className={input} placeholder="Search by name" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <p className="text-xs text-stone-500">{total} repositories</p>
-        <ul className="divide-y divide-stone-200 dark:divide-stone-800">
-          {repos.map((r) => {
-            const [owner, name] = r.full_name.split("/") as [string, string];
-            return (
-              <li key={r.full_name} className="flex items-center gap-3 py-2 text-sm">
-                <span className="font-mono">{r.full_name}</span>
-                {r.private && <Pill>private</Pill>}
-                <Link className="ml-auto underline" to={`/repos/${owner}/${name}/diff`}>
-                  Runs and diffs
-                </Link>
-                <button type="button" className={button} onClick={() => setTarget({ owner, repo: name, defaultBranch: r.default_branch })}>
-                  Run
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <input
+          id="repo-search"
+          className={input}
+          placeholder="Search by name"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {repos.length > 0 && (
+          <ul className="card divide-y divide-line">
+            {repos.map((r) => {
+              const [owner, name] = r.full_name.split("/") as [string, string];
+              const scannable = r.scannable !== false;
+              return (
+                <li key={r.full_name} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-sm">
+                  <span className="font-mono text-[13px]">
+                    <span className="text-ink-3">{owner}/</span>
+                    <span className="font-medium text-ink">{name}</span>
+                  </span>
+                  {r.private && <Pill tone={scannable ? "neutral" : "warn"}>{scannable ? "private" : "private: not scanned here"}</Pill>}
+                  <span className="ml-auto flex items-center gap-3">
+                    <Link className="link text-ink-2" to={`/repos/${owner}/${name}/diff`}>
+                      Runs and diffs
+                    </Link>
+                    <button
+                      type="button"
+                      className={button}
+                      disabled={!scannable}
+                      title={scannable ? undefined : "This instance scans public repositories only"}
+                      onClick={() => setTarget({ owner, repo: name, defaultBranch: r.default_branch })}
+                    >
+                      Run
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
     </div>
   );

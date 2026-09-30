@@ -104,10 +104,10 @@ shows up as an `observed-unexpected` destination with method `DNS`.
 
 Dependency installation happens in `docker build`, which needs registry access, so install
 scripts run with network access inside the build container. The build context holds the
-repository and Lantern's CA certificate, nothing else. Behind a TLS-intercepting proxy,
+repository and Katz's CA certificate, nothing else. Behind a TLS-intercepting proxy,
 set `LANTERN_BUILD_NETWORK=host`, `LANTERN_BUILD_CA_CERT`, and `LANTERN_BUILD_HTTPS_PROXY`.
 
-**`LocalFixtureBackend`** (`local.py`) runs Lantern's own fixtures on the host against
+**`LocalFixtureBackend`** (`local.py`) runs Katz's own fixtures on the host against
 `fixtures/mock-server`, rewriting `lantern.yml`'s `dynamic.endpoints` to the mock server. It
 refuses any path outside `fixtures/`. It exists so the verifier can be tested without Docker.
 

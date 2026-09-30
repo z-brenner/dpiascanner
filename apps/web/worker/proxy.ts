@@ -7,12 +7,16 @@
 
 export interface Env {
   ASSETS: Fetcher;
-  /** Origin of the FastAPI service, such as https://api.lantern.example.com. */
+  /** Origin of the FastAPI service, such as https://api.katz.example.com. */
   API_ORIGIN?: string;
   /** Cloudflare Access service token, when the API hostname sits behind Access. */
   CF_ACCESS_CLIENT_ID?: string;
   CF_ACCESS_CLIENT_SECRET?: string;
+  /** Shared secret the API requires (LANTERN_PROXY_SECRET) when its hostname is public, as on Render. */
+  API_PROXY_SECRET?: string;
 }
+
+export const PROXY_SECRET_HEADER = "X-Katz-Proxy-Secret";
 
 export const API_PREFIX = "/api";
 
@@ -32,6 +36,7 @@ const DROPPED_REQUEST_HEADERS = new Set([
   "x-forwarded-for",
   "x-forwarded-host",
   "x-forwarded-proto",
+  "x-katz-proxy-secret",
 ]);
 
 export function isApiPath(pathname: string): boolean {
@@ -85,6 +90,7 @@ export function forwardHeaders(request: Request, env: Env): Headers {
     out.set("CF-Access-Client-Id", env.CF_ACCESS_CLIENT_ID);
     out.set("CF-Access-Client-Secret", env.CF_ACCESS_CLIENT_SECRET);
   }
+  if (env.API_PROXY_SECRET) out.set(PROXY_SECRET_HEADER, env.API_PROXY_SECRET);
   return out;
 }
 

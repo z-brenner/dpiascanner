@@ -2,7 +2,7 @@
 // Deploy: pnpm --filter @katz/web cf:deploy (see docs/deploy-cloudflare.md).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "katz-web",
+  "name": "katzscanner",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-26",
   "assets": {

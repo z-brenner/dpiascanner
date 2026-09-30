@@ -6,7 +6,7 @@ origin. To run the backend on Render instead of your own server, follow
 `docs/deploy-render.md` in place of steps 1–3 below.
 
 ```
-browser ──https──> Cloudflare Worker "katz-web" (apps/web/wrangler.jsonc)
+browser ──https──> Cloudflare Worker "katzscanner" (apps/web/wrangler.jsonc)
                      ├─ /*      static assets (Vite build), SPA fallback, public/_headers
                      └─ /api/*  worker/proxy.ts: strips /api, adds the Access service token
                                    │
@@ -116,7 +116,7 @@ Without Access, `api.example.com` is a public API next to the site. With Access,
 Worker can reach it.
 
 1. **Zero Trust → Access → Service Auth → Service Tokens**: create a token, for example
-   `katz-web`.
+   `katzscanner`.
 2. **Access → Applications**: add a self-hosted application for `api.example.com` with a
    policy whose action is **Service Auth** and whose rule is that service token.
 3. Give the Worker the token:
@@ -145,16 +145,16 @@ pnpm --filter @katz/web exec wrangler deploy --var API_ORIGIN:https://api.exampl
 does not.
 
 `API_ORIGIN` persists across deploys, because `keep_vars` is set in `wrangler.jsonc`. You can
-also set it in the dashboard, under **Workers → katz-web → Settings → Variables**.
+also set it in the dashboard, under **Workers → katzscanner → Settings → Variables**.
 
-The site is now at `https://katz-web.<your-subdomain>.workers.dev`. For your own domain,
+The site is now at `https://katzscanner.<your-subdomain>.workers.dev`. For your own domain,
 the zone must be on Cloudflare. Either add this to `wrangler.jsonc`:
 
 ```jsonc
 "routes": [{ "pattern": "katz.example.com", "custom_domain": true }]
 ```
 
-or add the domain in the dashboard, under **Workers → katz-web → Settings → Domains &
+or add the domain in the dashboard, under **Workers → katzscanner → Settings → Domains &
 Routes**.
 
 **Continuous deploys.** `.github/workflows/deploy-web.yml` deploys after `ci` passes on a push
@@ -173,7 +173,7 @@ It never deploys code from pull requests: it checks that the CI run came from a 
 repository, not only that the branch was named `main`. Anyone with write access can run it by
 hand on any branch.
 
-To roll back: `pnpm exec wrangler rollback`, or pick a version under **Workers → katz-web →
+To roll back: `pnpm exec wrangler rollback`, or pick a version under **Workers → katzscanner →
 Deployments**.
 
 ### 5. The GitHub App

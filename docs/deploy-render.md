@@ -5,7 +5,7 @@ Instead of a server running Docker Compose behind a Cloudflare Tunnel
 on Render from `render.yaml`. The web app still runs on Cloudflare Workers.
 
 ```
-browser ──> Cloudflare Worker "katz-web" ──/api/* + X-Katz-Proxy-Secret──> Render
+browser ──> Cloudflare Worker "katzscanner" ──/api/* + X-Katz-Proxy-Secret──> Render
                                                    katz-api (web service, Docker)
                                                    katz-worker (background worker)
                                                    katz-db (Postgres) · katz-queue (Key Value)

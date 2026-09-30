@@ -18,7 +18,7 @@ Keep a scratch note open while you work. You will collect these values:
 
 | Name | Comes from |
 |---|---|
-| `SITE` | step 1, for example `https://katz-web.yourname.workers.dev` |
+| `SITE` | step 1, for example `https://katzscanner.yourname.workers.dev` |
 | `GITHUB_APP_ID`, `GITHUB_APP_SLUG`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_WEBHOOK_SECRET` | step 2 |
 | `API`, `LANTERN_PROXY_SECRET` | step 3 |
 
@@ -29,7 +29,9 @@ password manager, not in the repository or a chat.
 
 1. Create a Cloudflare account. Open **Workers & Pages**. If Cloudflare has not given you a
    `workers.dev` subdomain yet, choose one; the deploy fails without it. Your site will be
-   `https://katz-web.<subdomain>.workers.dev`. That address is `SITE`.
+   `https://katzscanner.<subdomain>.workers.dev`. That address is `SITE`. You don't need to
+   create the Worker yourself: the deploy in step 5 creates `katzscanner`, or replaces what a
+   Worker of that name serves (such as Cloudflare's "Hello world" starter).
 2. Create an API token under **My Profile → API Tokens → Create Token**:
    - use the **Edit Cloudflare Workers** template;
    - under **Account Resources**, pick your account;
@@ -100,7 +102,7 @@ Create the app. On its settings page, collect:
 
 ## 4. Connect the site to the API
 
-1. In Cloudflare, go to **Workers & Pages → katz-web → Settings → Variables and Secrets →
+1. In Cloudflare, go to **Workers & Pages → katzscanner → Settings → Variables and Secrets →
    Add**. Choose type **Secret**, name it `API_PROXY_SECRET`, and paste the value of
    `LANTERN_PROXY_SECRET`.
 2. In this GitHub repository, go to **Settings → Secrets and variables → Actions → Variables**
